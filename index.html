@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#092b36" />
+    <title>Jolie Joku Adventure</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23092b36'/%3E%3Cpath d='M32 50C14 37 10 25 17 17c6-7 13-2 15 3 2-5 9-10 15-3 7 8 3 20-15 33Z' fill='%23ff8dc7'/%3E%3Cpath d='M8 46c15-4 28-18 38-34-2 18-13 36-38 34Z' fill='%2355d9ff' opacity='.9'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Jolie Joku Adventure">
+      <canvas id="gameCanvas"></canvas>
+
+      <section class="hud hud-top" aria-label="Adventure status">
+        <article class="hero-card hero-card-joku">
+          <div class="portrait portrait-joku" aria-hidden="true"></div>
+          <div class="hero-bars">
+            <div class="hero-name">Joku <span>Host</span></div>
+            <div class="bar health"><i id="jokuHp"></i></div>
+            <div class="bar mana"><i id="jokuMana"></i></div>
+          </div>
+        </article>
+
+        <article class="stage-card">
+          <div id="sceneName">Heartfall Grove</div>
+          <div class="progress-track">
+            <i id="progressFill"></i>
+            <span class="milestone m1"></span>
+            <span class="milestone m2"></span>
+            <span class="milestone m3"></span>
+          </div>
+          <div class="bond-row">
+            <span>Bond</span>
+            <div class="bond-track"><i id="bondFill"></i></div>
+            <b id="bondText">0%</b>
+          </div>
+        </article>
+
+        <article class="hero-card hero-card-jolie">
+          <div class="hero-bars">
+            <div class="hero-name">Jolie <span>Guest</span></div>
+            <div class="bar health"><i id="jolieHp"></i></div>
+            <div class="bar mana"><i id="jolieMana"></i></div>
+          </div>
+          <div class="portrait portrait-jolie" aria-hidden="true"></div>
+        </article>
+      </section>
+
+      <div class="corner-actions">
+        <button id="journalButton" class="icon-button" type="button" aria-label="Open design journal">
+          <span class="icon icon-journal"></span>
+        </button>
+        <button id="restartButton" class="icon-button" type="button" aria-label="Restart adventure">
+          <span class="icon icon-restart"></span>
+        </button>
+      </div>
+
+      <section id="touchControls" class="touch-controls" aria-label="Touch controls">
+        <div id="stickBase" class="stick-base">
+          <span id="stickKnob" class="stick-knob"></span>
+        </div>
+        <div class="touch-actions">
+          <button data-action="switch" class="skill-button switch" type="button" aria-label="Switch active hero">
+            <span class="icon icon-switch"></span>
+          </button>
+          <button data-action="skill1" class="skill-button water" type="button" aria-label="Primary skill">
+            <span class="icon icon-wave"></span>
+          </button>
+          <button data-action="skill2" class="skill-button flower" type="button" aria-label="Secondary skill">
+            <span class="icon icon-bloom"></span>
+          </button>
+          <button data-action="support" class="skill-button support" type="button" aria-label="Supporter skill">
+            <span class="icon icon-paw"></span>
+          </button>
+          <button data-action="bond" class="skill-button bond" type="button" aria-label="Bond skill">
+            <span class="icon icon-heart"></span>
+          </button>
+        </div>
+      </section>
+
+      <section id="menuOverlay" class="overlay menu-overlay">
+        <div class="menu-panel">
+          <p class="kicker">Co-op love adventure</p>
+          <h1>Jolie Joku Adventure</h1>
+          <p>
+            Joku, the ocean phoenix host, and Jolie, the flower guest, cross Heartfall Grove with
+            their blue dog and pink panda supporters to break the Murkheart curse.
+          </p>
+          <div class="menu-actions">
+            <button id="playButton" type="button" class="primary-action">Play</button>
+            <button id="openJournalFromMenu" type="button" class="secondary-action">Design Journal</button>
+          </div>
+        </div>
+      </section>
+
+      <aside id="journalPanel" class="journal-panel" aria-label="Design journal" aria-hidden="true">
+        <header>
+          <div>
+            <p class="kicker">Adventure bible</p>
+            <h2>World, Heroes, Skills</h2>
+          </div>
+          <button id="closeJournal" class="icon-button" type="button" aria-label="Close design journal">
+            <span class="icon icon-close"></span>
+          </button>
+        </header>
+
+        <nav class="tabs" aria-label="Journal tabs">
+          <button class="active" type="button" data-tab="heroes">Heroes</button>
+          <button type="button" data-tab="skills">Skills</button>
+          <button type="button" data-tab="world">World</button>
+          <button type="button" data-tab="evil">Evil</button>
+          <button type="button" data-tab="story">Story</button>
+        </nav>
+
+        <div class="journal-content active" data-panel="heroes">
+          <article>
+            <h3>Joku, Host of the Phoenix Ocean</h3>
+            <p>
+              Joku wears a white and navy adventurer coat with gold tide clasps, black travel boots,
+              and a bright water crystal at his chest. His hair is dark blue with cyan highlights,
+              and phoenix wings bloom from his back as glassy ocean feathers.
+            </p>
+            <p>
+              He is the brave host of the journey: fast, protective, and built for front-line
+              fighting. His visual language mixes waves, feathers, moonlit foam, and comet-blue
+              sparks.
+            </p>
+          </article>
+          <article>
+            <h3>Blue Dog, Azure Tide Supporter</h3>
+            <p>
+              The blue dog is a small, joyful guardian with white ear tips, a curled water-tail,
+              a brass collar bell, and a tiny explorer pouch. It scouts danger, barks shields into
+              the air, and marks weak points with blue paw-light.
+            </p>
+          </article>
+          <article>
+            <h3>Jolie, Guest of the Flower Heart</h3>
+            <p>
+              Jolie wears a rose-pink petal dress over soft adventurer armor, brown boots, a flower
+              hair clip, and a blossom focus glowing in both hands. Her hair trails like petals when
+              she runs, and her spells look like orchids, vines, and warm starlight.
+            </p>
+            <p>
+              She is the guest and emotional center of the adventure: graceful, clever, and powerful
+              at healing, crowd control, and turning danger into beauty.
+            </p>
+          </article>
+          <article>
+            <h3>Pink Panda, Heartleaf Supporter</h3>
+            <p>
+              The pink panda is round, soft, and brave, with rose ears, a heart-shaped leaf satchel,
+              and a tiny bamboo wand. It brings recovery blooms, charm pulses, and emergency hugs
+              when the team is under pressure.
+            </p>
+          </article>
+        </div>
+
+        <div class="journal-content" data-panel="skills">
+          <article>
+            <h3>Joku Skills</h3>
+            <p>
+              Tide Feather Cut launches a sharp ocean crescent that pierces shadow armor. Phoenix
+              Ocean Rise turns Joku into a bright winged dash, breaking thorn lines and lifting him
+              through danger. Azure Bark Guard calls the blue dog to create a short shield and send
+              paw-light toward the nearest enemy.
+            </p>
+          </article>
+          <article>
+            <h3>Jolie Skills</h3>
+            <p>
+              Blossom Star releases spinning petals that burst on impact. Vine Promise plants a
+              living snare that holds enemies in place while flowers drain their curse. Honeyheart
+              Bloom asks the pink panda to heal both heroes and leave a soft recovery field.
+            </p>
+          </article>
+          <article>
+            <h3>Bond Skills</h3>
+            <p>
+              Hold Hand creates a blue-pink ribbon between Joku and Jolie, reducing damage and
+              filling the bond meter. Hug restores health with petal light when the team is close.
+              Kiss unlocks Heart Bloom Phoenix, a combined ocean-flower finisher that clears the
+              screen with a giant heart-wing wave.
+            </p>
+          </article>
+        </div>
+
+        <div class="journal-content" data-panel="world">
+          <article>
+            <h3>Heartfall Grove</h3>
+            <p>
+              A bright forest valley where waterfalls cut through floating cliffs. The ground is
+              mossy and alive, mushrooms grow into bridges, and blue crystals hum near the water.
+              The first path teaches the couple to stay close and share protection.
+            </p>
+          </article>
+          <article>
+            <h3>Mushroom Bridge</h3>
+            <p>
+              The middle route rises over orange mushroom caps and broken roots. Petal orbs and
+              ocean drops float in pairs, rewarding both characters when they move together.
+            </p>
+          </article>
+          <article>
+            <h3>Moonlit Gate</h3>
+            <p>
+              The final clearing holds an old heart-shaped gate. It opens only when the curse is
+              defeated and the pair arrives together with enough trust to glow through the ruins.
+            </p>
+          </article>
+        </div>
+
+        <div class="journal-content" data-panel="evil">
+          <article>
+            <h3>Shadow Bramble</h3>
+            <p>
+              A crawling thorn creature with black-purple roots and red glass eyes. It tries to
+              split the pair apart by blocking the low road and punishing lonely heroes.
+            </p>
+          </article>
+          <article>
+            <h3>Thorn Wisp</h3>
+            <p>
+              A floating mask of cursed pollen. It circles above platforms, shoots needle sparks,
+              and is weak to Jolie's blossom bursts or Joku's rising phoenix dash.
+            </p>
+          </article>
+          <article>
+            <h3>Murkheart</h3>
+            <p>
+              The boss is a wounded forest core wrapped in thorns, not a simple monster. Its attacks
+              are jealousy vines, silence waves, and dark petals. The cure is a combined strike:
+              ocean courage from Joku and flower tenderness from Jolie.
+            </p>
+          </article>
+        </div>
+
+        <div class="journal-content" data-panel="story">
+          <article>
+            <h3>Love Story</h3>
+            <p>
+              Joku prepares the route as host, but the forest changes when Jolie arrives as guest.
+              Every fight becomes a promise: he shields the path, she restores the heart of it, and
+              their supporters turn fear into playfulness.
+            </p>
+            <p>
+              The adventure ends when they reach the Moonlit Gate, hold hands through the last curse,
+              hug after the final danger, and seal the grove with Heart Bloom Phoenix.
+            </p>
+          </article>
+        </div>
+      </aside>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <script type="module" src="src/game.js"></script>
+  </body>
+</html>
