@@ -51,6 +51,9 @@
       </section>
 
       <div class="corner-actions">
+        <button id="musicButton" class="icon-button" type="button" aria-label="Toggle music">
+          <span class="icon icon-music"></span>
+        </button>
         <button id="journalButton" class="icon-button" type="button" aria-label="Open design journal">
           <span class="icon icon-journal"></span>
         </button>
@@ -84,15 +87,41 @@
 
       <section id="menuOverlay" class="overlay menu-overlay">
         <div class="menu-panel">
-          <p class="kicker">Co-op love adventure</p>
+          <p class="kicker">Online co-op love adventure</p>
           <h1>Jolie Joku Adventure</h1>
           <p>
-            Joku, the ocean phoenix host, and Jolie, the flower guest, cross Heartfall Grove with
-            their blue dog and pink panda supporters to break the Murkheart curse.
+            Host as Joku, invite Jolie with code 1234567, choose a chapter together, then fight
+            through a long glowing journey with music, romance skills, and different monsters in
+            every map.
           </p>
+          <label class="room-field" for="roomCodeInput">
+            <span>Invitation code</span>
+            <input id="roomCodeInput" type="text" inputmode="numeric" value="1234567" maxlength="12" />
+          </label>
           <div class="menu-actions">
-            <button id="playButton" type="button" class="primary-action">Play</button>
+            <button id="hostButton" type="button" class="primary-action">Host as Joku</button>
+            <button id="joinButton" type="button" class="secondary-action">Join as Jolie</button>
+            <button id="playOfflineButton" type="button" class="secondary-action">Play Offline</button>
             <button id="openJournalFromMenu" type="button" class="secondary-action">Design Journal</button>
+          </div>
+          <p id="lobbyStatus" class="lobby-status">Ready to create or join room 1234567.</p>
+        </div>
+      </section>
+
+      <section id="mapOverlay" class="overlay map-overlay hidden">
+        <div class="map-panel">
+          <header class="map-panel-header">
+            <div>
+              <p class="kicker">Shared map select</p>
+              <h2>Choose Your Journey</h2>
+            </div>
+            <div id="roomBadge" class="room-badge">Code 1234567</div>
+          </header>
+          <div id="playerStatus" class="player-status">Waiting for both hearts to connect.</div>
+          <div id="mapGrid" class="map-grid" aria-label="Adventure maps"></div>
+          <div class="map-footer">
+            <button id="backToLobbyButton" type="button" class="secondary-action">Back</button>
+            <button id="startSelectedMapButton" type="button" class="primary-action">Start Chapter</button>
           </div>
         </div>
       </section>
@@ -212,6 +241,14 @@
               defeated and the pair arrives together with enough trust to glow through the ruins.
             </p>
           </article>
+          <article>
+            <h3>Long Journey Chapters</h3>
+            <p>
+              The expanded journey travels through Heartfall Grove, Lotus Lantern Marsh, Crystal
+              Tide Ruins, Aurora Petal Peaks, and the Eternal Heart Gate. Each chapter changes the
+              color of the world, the monster family, the boss, and the music progression.
+            </p>
+          </article>
         </div>
 
         <div class="journal-content" data-panel="evil">
@@ -235,6 +272,14 @@
               The boss is a wounded forest core wrapped in thorns, not a simple monster. Its attacks
               are jealousy vines, silence waves, and dark petals. The cure is a combined strike:
               ocean courage from Joku and flower tenderness from Jolie.
+            </p>
+          </article>
+          <article>
+            <h3>New Monster Families</h3>
+            <p>
+              Later maps add Glassfin Serpents, Lantern Imps, Crystal Knights, Aurora Moths,
+              Mirror Wisps, and Eternal Gatekeepers. Each family has a different movement pattern,
+              attack color, and weakness to ocean, flower, support, or bond skills.
             </p>
           </article>
         </div>

@@ -178,14 +178,14 @@ try {
   const version = await waitForVersion();
   client = new CdpClient(version.webSocketDebuggerUrl);
 
-  const desktop = await createPage(client, {
+  const host = await createPage(client, {
     width: 1280,
     height: 720,
     deviceScaleFactor: 1,
     mobile: false
-  }, "desktop", errors);
+  }, "host", errors);
 
-  const desktopLoad = await evaluate(client, desktop, `(() => {
+  const desktopLoad = await evaluate(client, host, `(() => {
     const canvas = document.getElementById("gameCanvas");
     const nodes = [...document.querySelectorAll(".hero-card, .stage-card")];
     const rects = nodes.map((node) => {
@@ -204,20 +204,52 @@ try {
       title: document.title,
       canvas: { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight },
       menuVisible: !document.getElementById("menuOverlay").classList.contains("hidden"),
+      hostButton: Boolean(document.getElementById("hostButton")),
+      joinButton: Boolean(document.getElementById("joinButton")),
       heroCards: document.querySelectorAll(".hero-card").length,
       overlaps
     };
   })()`);
 
-  await evaluate(client, desktop, `document.getElementById("playButton").click(); true;`);
-  await delay(1200);
-  await press(client, desktop, "KeyF");
-  await press(client, desktop, "KeyG");
-  await press(client, desktop, "KeyH");
-  await press(client, desktop, "KeyB");
-  await delay(1200);
+  await evaluate(client, host, `document.getElementById("hostButton").click(); true;`);
+  await delay(700);
 
-  const desktopPlay = await evaluate(client, desktop, `(() => {
+  const guest = await createPage(client, {
+    width: 1180,
+    height: 720,
+    deviceScaleFactor: 1,
+    mobile: false
+  }, "guest", errors);
+  await evaluate(client, guest, `document.getElementById("joinButton").click(); true;`);
+  await delay(900);
+
+  const lobbyState = await evaluate(client, host, `(() => ({
+    hostMapVisible: !document.getElementById("mapOverlay").classList.contains("hidden"),
+    roomBadge: document.getElementById("roomBadge").textContent,
+    playerStatus: document.getElementById("playerStatus").textContent,
+    selectedCards: document.querySelectorAll(".map-card.selected").length,
+    mapCards: document.querySelectorAll(".map-card").length
+  }))()`);
+
+  await evaluate(client, host, `document.querySelector('[data-map-id="crystal"]').click(); true;`);
+  await delay(350);
+  const guestMapState = await evaluate(client, guest, `(() => ({
+    mapVisible: !document.getElementById("mapOverlay").classList.contains("hidden"),
+    selectedMap: document.querySelector(".map-card.selected")?.dataset.mapId,
+    startDisabled: document.getElementById("startSelectedMapButton").disabled,
+    playerStatus: document.getElementById("playerStatus").textContent
+  }))()`);
+
+  await evaluate(client, host, `document.getElementById("startSelectedMapButton").click(); true;`);
+  await delay(1600);
+  await press(client, host, "KeyF");
+  await press(client, guest, "KeyK");
+  await press(client, host, "KeyG");
+  await press(client, guest, "KeyL");
+  await press(client, host, "KeyB");
+  await delay(1600);
+
+  const hostPlay = await evaluate(client, host, `(() => {
     const canvas = document.getElementById("gameCanvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
     const data = context.getImageData(Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.5), 14, 14).data;
@@ -225,6 +257,7 @@ try {
     for (let i = 0; i < data.length; i += 4) energy += data[i] + data[i + 1] + data[i + 2];
     return {
       menuHidden: document.getElementById("menuOverlay").classList.contains("hidden"),
+      mapHidden: document.getElementById("mapOverlay").classList.contains("hidden"),
       sceneName: document.getElementById("sceneName").textContent,
       bondText: document.getElementById("bondText").textContent,
       toastText: document.getElementById("toast").textContent,
@@ -232,14 +265,30 @@ try {
     };
   })()`);
 
-  await evaluate(client, desktop, `document.getElementById("journalButton").click(); true;`);
+  const guestPlay = await evaluate(client, guest, `(() => {
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const data = context.getImageData(Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.5), 14, 14).data;
+    let energy = 0;
+    for (let i = 0; i < data.length; i += 4) energy += data[i] + data[i + 1] + data[i + 2];
+    return {
+      menuHidden: document.getElementById("menuOverlay").classList.contains("hidden"),
+      mapHidden: document.getElementById("mapOverlay").classList.contains("hidden"),
+      sceneName: document.getElementById("sceneName").textContent,
+      bondText: document.getElementById("bondText").textContent,
+      canvasEnergy: energy
+    };
+  })()`);
+
+  await evaluate(client, host, `document.getElementById("journalButton").click(); true;`);
   await delay(350);
-  const journalState = await evaluate(client, desktop, `(() => ({
+  const journalState = await evaluate(client, host, `(() => ({
     open: document.getElementById("journalPanel").classList.contains("open"),
     tabs: [...document.querySelectorAll(".tabs button")].map((button) => button.textContent.trim()),
     activePanel: document.querySelector(".journal-content.active")?.dataset.panel
   }))()`);
-  await screenshot(client, desktop, "verify-desktop.png");
+  await screenshot(client, host, "verify-host.png");
+  await screenshot(client, guest, "verify-guest.png");
 
   const mobile = await createPage(client, {
     width: 390,
@@ -265,11 +314,15 @@ try {
     url,
     chromePath,
     desktopLoad,
-    desktopPlay,
+    lobbyState,
+    guestMapState,
+    hostPlay,
+    guestPlay,
     journalState,
     mobileState,
     screenshots: [
-      "tmp/verify-desktop.png",
+      "tmp/verify-host.png",
+      "tmp/verify-guest.png",
       "tmp/verify-mobile.png"
     ],
     errors
