@@ -290,25 +290,95 @@ try {
   await screenshot(client, host, "verify-host.png");
   await screenshot(client, guest, "verify-guest.png");
 
-  const mobile = await createPage(client, {
+  const mobileHost = await createPage(client, {
     width: 390,
     height: 844,
     deviceScaleFactor: 2,
     mobile: true
-  }, "mobile", errors);
-  const mobileState = await evaluate(client, mobile, `(() => {
+  }, "mobile-host", errors);
+  await evaluate(client, mobileHost, `document.getElementById("hostButton").click(); true;`);
+  await delay(700);
+
+  const mobileGuest = await createPage(client, {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 2,
+    mobile: true
+  }, "mobile-guest", errors);
+  await evaluate(client, mobileGuest, `document.getElementById("joinButton").click(); true;`);
+  await delay(900);
+
+  const mobileMapState = await evaluate(client, mobileHost, `(() => ({
+    hostMapVisible: !document.getElementById("mapOverlay").classList.contains("hidden"),
+    hostRole: document.getElementById("roleBadge").textContent,
+    hostPlayerStatus: document.getElementById("playerStatus").textContent,
+    hostTouchDisplay: getComputedStyle(document.getElementById("touchControls")).display
+  }))()`);
+
+  await evaluate(client, mobileHost, `document.querySelector('[data-map-id="heartfall"]').click(); true;`);
+  await delay(250);
+  await evaluate(client, mobileHost, `document.getElementById("startSelectedMapButton").click(); true;`);
+  await delay(1500);
+  await evaluate(client, mobileHost, `
+    document.querySelector('[data-action="skill1"]').dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 41 }));
+    true;
+  `);
+  await evaluate(client, mobileGuest, `
+    document.querySelector('[data-action="skill1"]').dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 42 }));
+    true;
+  `);
+  await delay(700);
+
+  const mobileHostPlay = await evaluate(client, mobileHost, `(() => {
     const controls = document.getElementById("touchControls");
-    const hud = [...document.querySelectorAll(".hero-card, .stage-card")].map((node) => {
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const data = context.getImageData(Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.5), 14, 14).data;
+    let energy = 0;
+    for (let i = 0; i < data.length; i += 4) energy += data[i] + data[i + 1] + data[i + 2];
+    const buttons = [...document.querySelectorAll(".skill-button")].map((button) => ({
+      action: button.dataset.action,
+      disabled: button.disabled
+    }));
+    return {
+      mapHidden: document.getElementById("mapOverlay").classList.contains("hidden"),
+      role: document.getElementById("roleBadge").textContent,
+      touchDisplay: getComputedStyle(controls).display,
+      switchDisabled: document.querySelector('[data-action="switch"]').disabled,
+      buttons,
+      canvasEnergy: energy
+    };
+  })()`);
+
+  const mobileGuestPlay = await evaluate(client, mobileGuest, `(() => {
+    const controls = document.getElementById("touchControls");
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const data = context.getImageData(Math.floor(canvas.width * 0.5), Math.floor(canvas.height * 0.5), 14, 14).data;
+    let energy = 0;
+    for (let i = 0; i < data.length; i += 4) energy += data[i] + data[i + 1] + data[i + 2];
+    return {
+      mapHidden: document.getElementById("mapOverlay").classList.contains("hidden"),
+      role: document.getElementById("roleBadge").textContent,
+      touchDisplay: getComputedStyle(controls).display,
+      switchDisabled: document.querySelector('[data-action="switch"]').disabled,
+      skillDisabled: document.querySelector('[data-action="skill1"]').disabled,
+      canvasEnergy: energy
+    };
+  })()`);
+
+  const mobileLayoutState = await evaluate(client, mobileHost, `(() => {
+    const hud = [...document.querySelectorAll(".hero-card, .stage-card, .network-role-badge")].map((node) => {
       const rect = node.getBoundingClientRect();
       return { width: rect.width, height: rect.height, top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom };
     });
     return {
-      touchDisplay: getComputedStyle(controls).display,
       viewport: { width: innerWidth, height: innerHeight },
       hud
     };
   })()`);
-  await screenshot(client, mobile, "verify-mobile.png");
+  await screenshot(client, mobileHost, "verify-mobile-host.png");
+  await screenshot(client, mobileGuest, "verify-mobile-guest.png");
 
   const report = {
     url,
@@ -319,11 +389,15 @@ try {
     hostPlay,
     guestPlay,
     journalState,
-    mobileState,
+    mobileMapState,
+    mobileHostPlay,
+    mobileGuestPlay,
+    mobileLayoutState,
     screenshots: [
       "tmp/verify-host.png",
       "tmp/verify-guest.png",
-      "tmp/verify-mobile.png"
+      "tmp/verify-mobile-host.png",
+      "tmp/verify-mobile-guest.png"
     ],
     errors
   };

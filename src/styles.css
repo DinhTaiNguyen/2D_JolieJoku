@@ -569,6 +569,151 @@ button {
   background: radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.28), rgba(130, 143, 255, 0.58));
 }
 
+.skill-button:disabled {
+  cursor: default;
+  opacity: 0.42;
+  filter: saturate(0.65);
+}
+
+.network-role-badge,
+.boss-hud,
+.chapter-banner {
+  position: absolute;
+  z-index: 9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(4, 22, 31, 0.62);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+.network-role-badge {
+  left: 50%;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  min-height: 34px;
+  max-width: min(340px, 78vw);
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.network-role-badge.joku {
+  color: #d8f8ff;
+  border-color: rgba(118, 235, 255, 0.45);
+  background: rgba(8, 47, 67, 0.68);
+}
+
+.network-role-badge.jolie {
+  color: #ffe2ef;
+  border-color: rgba(255, 148, 203, 0.48);
+  background: rgba(58, 22, 48, 0.68);
+}
+
+.boss-hud {
+  top: calc(112px + env(safe-area-inset-top));
+  left: 50%;
+  width: min(430px, 58vw);
+  min-height: 58px;
+  padding: 10px 14px;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.boss-hud.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.boss-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.boss-title span {
+  color: #ffb0d4;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.boss-title b {
+  font-size: 1rem;
+  text-shadow: 0 0 18px rgba(255, 125, 186, 0.5);
+}
+
+.boss-track {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.boss-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff5b6d, #ff8ec4, #ffe59a);
+  transition: width 140ms ease;
+}
+
+.chapter-banner {
+  left: 50%;
+  top: 50%;
+  display: grid;
+  gap: 5px;
+  width: min(560px, 82vw);
+  padding: 18px 22px;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.97);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.chapter-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.chapter-banner span {
+  color: var(--amber);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.chapter-banner b {
+  color: #ffffff;
+  font-size: clamp(1.35rem, 5vw, 2.65rem);
+  line-height: 1;
+  text-shadow:
+    0 0 22px rgba(85, 217, 255, 0.62),
+    0 0 28px rgba(255, 116, 187, 0.42);
+}
+
+.chapter-banner small {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
 .overlay {
   position: absolute;
   z-index: 15;
@@ -693,7 +838,8 @@ button {
 }
 
 .lobby-status,
-.player-status {
+.player-status,
+.invite-help {
   color: var(--muted);
   font-weight: 800;
 }
@@ -732,6 +878,14 @@ button {
 .player-status {
   min-height: 24px;
   margin-bottom: 14px;
+}
+
+.invite-help {
+  min-height: 20px;
+  margin: -6px 0 14px;
+  color: rgba(255, 231, 160, 0.92);
+  font-size: 0.86rem;
+  line-height: 1.35;
 }
 
 .map-grid {
@@ -958,8 +1112,16 @@ button {
     display: flex;
   }
 
+  .network-role-badge {
+    bottom: calc(154px + env(safe-area-inset-bottom));
+  }
+
   .corner-actions {
     bottom: calc(164px + env(safe-area-inset-bottom));
+  }
+
+  .toast {
+    bottom: calc(202px + env(safe-area-inset-bottom));
   }
 }
 
@@ -1061,7 +1223,24 @@ button {
   }
 
   .toast {
-    bottom: calc(150px + env(safe-area-inset-bottom));
+    bottom: calc(196px + env(safe-area-inset-bottom));
+  }
+
+  .network-role-badge {
+    bottom: calc(136px + env(safe-area-inset-bottom));
+    max-width: min(300px, 72vw);
+    padding: 7px 10px;
+    font-size: 0.68rem;
+  }
+
+  .boss-hud {
+    top: calc(142px + env(safe-area-inset-top));
+    width: min(340px, calc(100vw - 28px));
+    padding: 8px 10px;
+  }
+
+  .boss-title b {
+    font-size: 0.88rem;
   }
 
   .map-panel {

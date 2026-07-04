@@ -12,6 +12,7 @@ const ui = {
   mapGrid: document.getElementById("mapGrid"),
   playerStatus: document.getElementById("playerStatus"),
   roomBadge: document.getElementById("roomBadge"),
+  inviteHelp: document.getElementById("inviteHelp"),
   startMap: document.getElementById("startSelectedMapButton"),
   backToLobby: document.getElementById("backToLobbyButton"),
   musicButton: document.getElementById("musicButton"),
@@ -31,6 +32,14 @@ const ui = {
   bondText: document.getElementById("bondText"),
   progressFill: document.getElementById("progressFill"),
   sceneName: document.getElementById("sceneName"),
+  roleBadge: document.getElementById("roleBadge"),
+  bossHud: document.getElementById("bossHud"),
+  bossName: document.getElementById("bossName"),
+  bossHp: document.getElementById("bossHp"),
+  chapterBanner: document.getElementById("chapterBanner"),
+  chapterKicker: document.getElementById("chapterKicker"),
+  chapterTitle: document.getElementById("chapterTitle"),
+  chapterSubtitle: document.getElementById("chapterSubtitle"),
   stickBase: document.getElementById("stickBase"),
   stickKnob: document.getElementById("stickKnob"),
   touchButtons: [...document.querySelectorAll("[data-action]")]
@@ -57,6 +66,8 @@ let selectedMapId = "heartfall";
 let currentMapId = "heartfall";
 let activeHeroId = "joku";
 let toastTimer = 0;
+let chapterBannerTimer = 0;
+let bossBannerKey = "";
 let flash = 0;
 let entitySeed = 1;
 
@@ -70,6 +81,7 @@ const MAPS = [
     name: "Heartfall Grove",
     subtitle: "Waterfalls, giant mushrooms, and the first promise.",
     monsters: "Shadow Bramble, Thorn Wisp, Murkheart",
+    bossIntro: "Murkheart roots the waterfall bridge and throws thorn curse fields.",
     gradient: "linear-gradient(145deg, #0d5e78, #3f9d78 46%, #ff8fbd)",
     tint: "rgba(57, 207, 238, 0.16)",
     accent: "#67e4ff",
@@ -93,6 +105,7 @@ const MAPS = [
     name: "Lotus Lantern Marsh",
     subtitle: "Soft lantern water, lily bridges, and tricky jumping imps.",
     monsters: "Lantern Imp, Glassfin Serpent, Lotus Queen",
+    bossIntro: "The Lotus Queen turns lantern light into sweeping marsh curses.",
     gradient: "linear-gradient(145deg, #104b5b, #41a89f 44%, #ffd36c)",
     tint: "rgba(255, 211, 108, 0.15)",
     accent: "#80ffe0",
@@ -116,6 +129,7 @@ const MAPS = [
     name: "Crystal Tide Ruins",
     subtitle: "Ancient blue ruins where reflections try to separate them.",
     monsters: "Crystal Knight, Mirror Wisp, Tide Golem",
+    bossIntro: "The Tide Golem guards the vault with heavy crystal waves.",
     gradient: "linear-gradient(145deg, #183c7a, #42c7d8 48%, #8e9cff)",
     tint: "rgba(117, 164, 255, 0.18)",
     accent: "#9bf4ff",
@@ -139,6 +153,7 @@ const MAPS = [
     name: "Aurora Petal Peaks",
     subtitle: "Floating highlands, aurora moths, and wind-swept petals.",
     monsters: "Aurora Moth, Starshade, Thorn Knight",
+    bossIntro: "Sky Warden dives through aurora wind and punishes lonely heroes.",
     gradient: "linear-gradient(145deg, #243468, #44b6a8 44%, #ff9fd2)",
     tint: "rgba(255, 159, 210, 0.18)",
     accent: "#a7fff1",
@@ -162,6 +177,7 @@ const MAPS = [
     name: "Eternal Heart Gate",
     subtitle: "The final long road where every bond skill matters.",
     monsters: "Gatekeeper, Eternal Wisp, Heart Eclipse",
+    bossIntro: "Heart Eclipse is the final vow-breaker. Stay close and spend bond wisely.",
     gradient: "linear-gradient(145deg, #13273f, #2f8ab5 42%, #ff6fae)",
     tint: "rgba(255, 111, 174, 0.22)",
     accent: "#7deeff",
@@ -183,22 +199,22 @@ const MAPS = [
 ];
 
 const MONSTERS = {
-  bramble: { name: "Shadow Bramble", family: "ground", hp: 60, r: 25, speed: 58, damage: 10, color: "#4e235c", glow: "#d452ad" },
-  wisp: { name: "Thorn Wisp", family: "flying", hp: 42, r: 21, speed: 44, damage: 8, color: "#73317d", glow: "#ff74bb" },
-  murkheart: { name: "Murkheart", family: "boss", hp: 260, r: 56, speed: 22, damage: 16, color: "#321238", glow: "#ff6bbb" },
-  lanternImp: { name: "Lantern Imp", family: "flying", hp: 48, r: 22, speed: 66, damage: 9, color: "#83652a", glow: "#ffd36c" },
-  glassfin: { name: "Glassfin Serpent", family: "serpent", hp: 76, r: 31, speed: 70, damage: 12, color: "#206b87", glow: "#82f2ff" },
-  lotusQueen: { name: "Lotus Queen", family: "boss", hp: 300, r: 58, speed: 20, damage: 16, color: "#7e3769", glow: "#ffd36c" },
-  crystalKnight: { name: "Crystal Knight", family: "ground", hp: 90, r: 29, speed: 48, damage: 14, color: "#315b9d", glow: "#a8f6ff" },
-  mirrorWisp: { name: "Mirror Wisp", family: "flying", hp: 54, r: 23, speed: 50, damage: 10, color: "#4d4e9c", glow: "#b7adff" },
-  tideGolem: { name: "Tide Golem", family: "boss", hp: 340, r: 62, speed: 18, damage: 18, color: "#225f80", glow: "#8ff3ff" },
-  auroraMoth: { name: "Aurora Moth", family: "flying", hp: 58, r: 25, speed: 66, damage: 11, color: "#3f8392", glow: "#a7fff1" },
-  starshade: { name: "Starshade", family: "serpent", hp: 78, r: 30, speed: 74, damage: 13, color: "#533c87", glow: "#ff9fd2" },
-  thornKnight: { name: "Thorn Knight", family: "ground", hp: 98, r: 30, speed: 50, damage: 15, color: "#4c6040", glow: "#ff9fd2" },
-  skyWarden: { name: "Sky Warden", family: "boss", hp: 360, r: 62, speed: 20, damage: 18, color: "#405a89", glow: "#ffadd4" },
-  gatekeeper: { name: "Gatekeeper", family: "ground", hp: 108, r: 32, speed: 54, damage: 15, color: "#294e5c", glow: "#ffe59a" },
-  eternalWisp: { name: "Eternal Wisp", family: "flying", hp: 70, r: 25, speed: 56, damage: 12, color: "#74325f", glow: "#ffe59a" },
-  heartEclipse: { name: "Heart Eclipse", family: "boss", hp: 440, r: 68, speed: 19, damage: 20, color: "#35172b", glow: "#ff6fae" }
+  bramble: { name: "Shadow Bramble", family: "ground", hp: 96, r: 27, speed: 64, damage: 15, color: "#4e235c", glow: "#d452ad" },
+  wisp: { name: "Thorn Wisp", family: "flying", hp: 70, r: 23, speed: 52, damage: 12, color: "#73317d", glow: "#ff74bb" },
+  murkheart: { name: "Murkheart", family: "boss", hp: 430, r: 60, speed: 26, damage: 22, color: "#321238", glow: "#ff6bbb" },
+  lanternImp: { name: "Lantern Imp", family: "flying", hp: 82, r: 24, speed: 74, damage: 14, color: "#83652a", glow: "#ffd36c" },
+  glassfin: { name: "Glassfin Serpent", family: "serpent", hp: 125, r: 34, speed: 82, damage: 18, color: "#206b87", glow: "#82f2ff" },
+  lotusQueen: { name: "Lotus Queen", family: "boss", hp: 510, r: 62, speed: 24, damage: 22, color: "#7e3769", glow: "#ffd36c" },
+  crystalKnight: { name: "Crystal Knight", family: "ground", hp: 150, r: 32, speed: 56, damage: 20, color: "#315b9d", glow: "#a8f6ff" },
+  mirrorWisp: { name: "Mirror Wisp", family: "flying", hp: 92, r: 25, speed: 58, damage: 15, color: "#4d4e9c", glow: "#b7adff" },
+  tideGolem: { name: "Tide Golem", family: "boss", hp: 580, r: 66, speed: 22, damage: 25, color: "#225f80", glow: "#8ff3ff" },
+  auroraMoth: { name: "Aurora Moth", family: "flying", hp: 98, r: 27, speed: 76, damage: 16, color: "#3f8392", glow: "#a7fff1" },
+  starshade: { name: "Starshade", family: "serpent", hp: 132, r: 33, speed: 86, damage: 20, color: "#533c87", glow: "#ff9fd2" },
+  thornKnight: { name: "Thorn Knight", family: "ground", hp: 165, r: 33, speed: 58, damage: 22, color: "#4c6040", glow: "#ff9fd2" },
+  skyWarden: { name: "Sky Warden", family: "boss", hp: 620, r: 66, speed: 24, damage: 26, color: "#405a89", glow: "#ffadd4" },
+  gatekeeper: { name: "Gatekeeper", family: "ground", hp: 180, r: 35, speed: 62, damage: 23, color: "#294e5c", glow: "#ffe59a" },
+  eternalWisp: { name: "Eternal Wisp", family: "flying", hp: 120, r: 27, speed: 66, damage: 18, color: "#74325f", glow: "#ffe59a" },
+  heartEclipse: { name: "Heart Eclipse", family: "boss", hp: 760, r: 72, speed: 23, damage: 30, color: "#35172b", glow: "#ff6fae" }
 };
 
 const net = {
@@ -212,6 +228,12 @@ const net = {
   inputTimer: 0,
   snapshotTimer: 0,
   lastSnapshotAt: 0
+};
+
+const serverConfig = {
+  checked: false,
+  websocket: false,
+  lanUrls: []
 };
 
 const music = {
@@ -345,6 +367,8 @@ function showLobby(message = "") {
   ui.menu.classList.remove("hidden");
   ui.mapOverlay.classList.add("hidden");
   ui.lobbyStatus.textContent = message || `Ready to create or join room ${ui.roomCode.value || "1234567"}.`;
+  updateRoleBadge();
+  updateTouchButtons();
 }
 
 function showMapSelect(message = "") {
@@ -353,7 +377,10 @@ function showMapSelect(message = "") {
   ui.mapOverlay.classList.remove("hidden");
   ui.roomBadge.textContent = net.role === "solo" ? "Offline" : `Code ${net.code}`;
   ui.playerStatus.textContent = message || playerStatusText();
+  ui.inviteHelp.textContent = inviteHelpText();
   updateMapCards();
+  updateRoleBadge();
+  updateTouchButtons();
 }
 
 function playerStatusText() {
@@ -361,6 +388,19 @@ function playerStatusText() {
   if (net.players.host && net.players.guest) return "Joku and Jolie are connected. Host chooses the chapter.";
   if (net.role === "host") return `Room ${net.code} is hosted. Waiting for Jolie to join.`;
   return `Joined room ${net.code}. Waiting for Joku to choose the chapter.`;
+}
+
+function inviteHelpText() {
+  if (net.role === "solo") return "Offline mode is for testing on one device.";
+  const base = `Share this game page and code ${net.code}.`;
+  if (net.role === "guest") return "You are Jolie. Wait for Joku to choose and start the chapter.";
+  if (serverConfig.lanUrls.length) {
+    return `${base} Same Wi-Fi URL: ${serverConfig.lanUrls[0]}`;
+  }
+  if (["localhost", "127.0.0.1", ""].includes(location.hostname)) {
+    return `${base} For another phone, use the deployed URL or your computer LAN IP, not 127.0.0.1.`;
+  }
+  return `${base} Jolie taps Join as Jolie on the same URL.`;
 }
 
 function resetGame(mapId = selectedMapId) {
@@ -376,6 +416,7 @@ function resetGame(mapId = selectedMapId) {
   bond.hugTimer = 0;
   bond.kissTimer = 0;
   bond.gateOpened = false;
+  bossBannerKey = "";
   projectiles.length = 0;
   particles.length = 0;
   effects.length = 0;
@@ -386,6 +427,10 @@ function resetGame(mapId = selectedMapId) {
   activeHeroId = net.role === "guest" ? "jolie" : "joku";
   ui.menu.classList.add("hidden");
   ui.mapOverlay.classList.add("hidden");
+  updateRoleBadge();
+  updateTouchButtons();
+  updateUi();
+  showChapterBanner("Chapter begins", map.name, map.subtitle, 3);
   showToast(`${map.name} begins.`);
   startMusic();
 }
@@ -415,6 +460,19 @@ function buildWorld(mapId) {
   }
 
   enemies = map.waves.map(([type, enemyX, enemyY]) => createEnemy(type, enemyX, enemyY));
+  const nonBossWaves = map.waves.filter(([type]) => MONSTERS[type]?.family !== "boss");
+  for (let i = 0; i < nonBossWaves.length; i += 1) {
+    const [type, enemyX, enemyY] = nonBossWaves[i];
+    if (i % 2 === 0 || map.id === "eternal") {
+      const elite = createEnemy(type, enemyX + 180 + i * 32, clamp(enemyY - 38, 390, 620));
+      elite.hp = Math.round(elite.hp * 1.22);
+      elite.maxHp = elite.hp;
+      elite.damage = Math.round(elite.damage * 1.12);
+      elite.r += 3;
+      elite.glow = map.bloom;
+      enemies.push(elite);
+    }
+  }
 }
 
 function makeOrbLine(x, y, count, gap, type) {
@@ -462,6 +520,14 @@ function showToast(message) {
   toastTimer = 2.5;
 }
 
+function showChapterBanner(kicker, title, subtitle, duration = 2.6) {
+  ui.chapterKicker.textContent = kicker;
+  ui.chapterTitle.textContent = title;
+  ui.chapterSubtitle.textContent = subtitle;
+  ui.chapterBanner.classList.add("show");
+  chapterBannerTimer = duration;
+}
+
 function startLoop(time = 0) {
   lastTime = time;
   requestAnimationFrame(loop);
@@ -501,6 +567,7 @@ function update(dt) {
   updateHazards(dt);
   updateParticles(dt);
   collectOrbs();
+  updateBossAlert();
   updateCamera(dt);
   checkGate();
 }
@@ -512,6 +579,7 @@ function updateGuest(dt) {
   updateSupporter(heroes.joku, dt);
   updateSupporter(heroes.jolie, dt);
   updateParticles(dt);
+  updateBossAlert();
   updateCamera(dt);
   if (Date.now() - net.lastSnapshotAt > 5000) {
     ui.playerStatus.textContent = "Waiting for host screen sync...";
@@ -536,6 +604,8 @@ function updateAmbient(dt) {
 function tickToast(dt) {
   toastTimer -= dt;
   if (toastTimer <= 0) ui.toast.classList.remove("show");
+  chapterBannerTimer -= dt;
+  if (chapterBannerTimer <= 0) ui.chapterBanner.classList.remove("show");
 }
 
 function updateCooldowns(hero, dt) {
@@ -696,34 +766,50 @@ function castSkill(hero, type) {
 
 function castJoku(hero, type) {
   if (type === "primary") {
-    if (!spend(hero, 13)) return false;
-    hero.cooldowns.primary = 0.32;
-    hero.castPose = 0.22;
-    projectiles.push({ x: hero.x + hero.facing * 30, y: hero.y - 8, vx: hero.facing * 650, vy: -20, r: 17, life: 0.9, damage: 28, owner: hero.id, type: "water" });
-    spray(hero.x + hero.facing * 28, hero.y - 8, "#66e3ff", 10, hero.facing);
+    if (!spend(hero, 16)) return false;
+    hero.cooldowns.primary = 0.36;
+    hero.castPose = 0.28;
+    for (const offset of [-13, 0, 13]) {
+      projectiles.push({
+        x: hero.x + hero.facing * 32,
+        y: hero.y - 8 + offset,
+        vx: hero.facing * (670 - Math.abs(offset) * 2),
+        vy: -20 + offset * 1.8,
+        r: offset === 0 ? 19 : 15,
+        life: 0.98,
+        damage: offset === 0 ? 34 : 22,
+        owner: hero.id,
+        type: "water"
+      });
+    }
+    effects.push({ type: "tidal-ring", x: hero.x + hero.facing * 44, y: hero.y - 6, life: 0.58, max: 0.58, color: "#72edff" });
+    spray(hero.x + hero.facing * 28, hero.y - 8, "#66e3ff", 18, hero.facing);
     return true;
   }
   if (type === "secondary") {
-    if (!spend(hero, 30)) return false;
-    hero.cooldowns.secondary = 2.0;
-    hero.castPose = 0.42;
-    hero.invulnerable = 0.5;
-    hero.vx = hero.facing * 540;
-    hero.vy = -370;
-    effects.push({ type: "phoenix", x: hero.x, y: hero.y - 10, life: 0.56, max: 0.56, facing: hero.facing });
-    areaDamage(hero.x + hero.facing * 70, hero.y, 92, 38, "phoenix");
-    burst(hero.x, hero.y, "#60e7ff", 32, 230);
+    if (!spend(hero, 34)) return false;
+    hero.cooldowns.secondary = 2.15;
+    hero.castPose = 0.5;
+    hero.invulnerable = 0.62;
+    hero.vx = hero.facing * 610;
+    hero.vy = -395;
+    effects.push({ type: "phoenix", x: hero.x, y: hero.y - 10, life: 0.74, max: 0.74, facing: hero.facing });
+    effects.push({ type: "tidal-ring", x: hero.x + hero.facing * 82, y: hero.y, life: 0.85, max: 0.85, color: "#7df1ff" });
+    areaDamage(hero.x + hero.facing * 95, hero.y, 138, 58, "phoenix");
+    burst(hero.x, hero.y, "#60e7ff", 48, 270);
     return true;
   }
   if (type === "support") {
-    if (!spend(hero, 22)) return false;
-    hero.cooldowns.support = 3.4;
-    hero.shield = 3.4;
+    if (!spend(hero, 26)) return false;
+    hero.cooldowns.support = 3.8;
+    hero.shield = 4.4;
     const target = nearestEnemy(hero, 560);
     const angle = target ? Math.atan2(target.y - hero.y, target.x - hero.x) : hero.facing > 0 ? 0 : Math.PI;
-    projectiles.push({ x: hero.supporter.x, y: hero.supporter.y - 18, vx: Math.cos(angle) * 540, vy: Math.sin(angle) * 540, r: 18, life: 1.2, damage: 24, owner: hero.id, type: "paw-blue" });
+    projectiles.push({ x: hero.supporter.x, y: hero.supporter.y - 18, vx: Math.cos(angle) * 600, vy: Math.sin(angle) * 600, r: 22, life: 1.35, damage: 38, owner: hero.id, type: "paw-blue" });
+    effects.push({ type: "tidal-ring", x: hero.supporter.x, y: hero.supporter.y - 10, life: 0.75, max: 0.75, color: "#8fe9ff" });
+    areaDamage(hero.supporter.x, hero.supporter.y - 10, 86, 18, "water");
     showToast("Blue dog casts Azure Bark Guard.");
-    burst(hero.supporter.x, hero.supporter.y, "#75c7ff", 18, 150);
+    burst(hero.supporter.x, hero.supporter.y, "#75c7ff", 28, 180);
     return true;
   }
   return false;
@@ -731,32 +817,46 @@ function castJoku(hero, type) {
 
 function castJolie(hero, type) {
   if (type === "primary") {
-    if (!spend(hero, 12)) return false;
-    hero.cooldowns.primary = 0.4;
-    hero.castPose = 0.28;
-    for (let i = -1; i <= 1; i += 1) {
-      projectiles.push({ x: hero.x + hero.facing * 28, y: hero.y - 10, vx: hero.facing * (520 + Math.abs(i) * 45), vy: i * 95 - 20, r: 14, life: 0.96, damage: 22, owner: hero.id, type: "flower" });
+    if (!spend(hero, 15)) return false;
+    hero.cooldowns.primary = 0.44;
+    hero.castPose = 0.34;
+    for (let i = -2; i <= 2; i += 1) {
+      projectiles.push({
+        x: hero.x + hero.facing * 30,
+        y: hero.y - 10,
+        vx: hero.facing * (545 + Math.abs(i) * 35),
+        vy: i * 68 - 22,
+        r: i === 0 ? 17 : 14,
+        life: 1.05,
+        damage: i === 0 ? 30 : 22,
+        owner: hero.id,
+        type: "flower"
+      });
     }
-    burst(hero.x + hero.facing * 24, hero.y - 15, "#ff94ca", 12, 110);
+    effects.push({ type: "bloom-ring", x: hero.x + hero.facing * 48, y: hero.y - 8, life: 0.7, max: 0.7, color: "#ff94ca" });
+    burst(hero.x + hero.facing * 24, hero.y - 15, "#ff94ca", 22, 140);
     return true;
   }
   if (type === "secondary") {
-    if (!spend(hero, 28)) return false;
-    hero.cooldowns.secondary = 2.65;
-    hero.castPose = 0.42;
-    hazards.push({ type: "vine", x: hero.x + hero.facing * 98, y: hero.y + 35, r: 96, life: 3.5, tick: 0 });
+    if (!spend(hero, 32)) return false;
+    hero.cooldowns.secondary = 2.9;
+    hero.castPose = 0.5;
+    hazards.push({ type: "vine", x: hero.x + hero.facing * 112, y: hero.y + 35, r: 128, life: 4.2, tick: 0, power: 14 });
+    effects.push({ type: "bloom-ring", x: hero.x + hero.facing * 106, y: hero.y + 16, life: 1.0, max: 1.0, color: "#ff9fce" });
     showToast("Jolie plants Vine Promise.");
-    burst(hero.x + hero.facing * 80, hero.y + 24, "#ff9fce", 24, 160);
+    burst(hero.x + hero.facing * 80, hero.y + 24, "#ff9fce", 38, 190);
     return true;
   }
   if (type === "support") {
-    if (!spend(hero, 30)) return false;
-    hero.cooldowns.support = 4.2;
-    heroes.joku.hp = Math.min(heroes.joku.maxHp, heroes.joku.hp + 22);
-    heroes.jolie.hp = Math.min(heroes.jolie.maxHp, heroes.jolie.hp + 28);
-    heroes.joku.shield = Math.max(heroes.joku.shield, 1.8);
-    heroes.jolie.shield = Math.max(heroes.jolie.shield, 1.8);
-    effects.push({ type: "heal", x: hero.supporter.x, y: hero.supporter.y, life: 1.2, max: 1.2 });
+    if (!spend(hero, 34)) return false;
+    hero.cooldowns.support = 4.6;
+    heroes.joku.hp = Math.min(heroes.joku.maxHp, heroes.joku.hp + 32);
+    heroes.jolie.hp = Math.min(heroes.jolie.maxHp, heroes.jolie.hp + 36);
+    heroes.joku.shield = Math.max(heroes.joku.shield, 2.6);
+    heroes.jolie.shield = Math.max(heroes.jolie.shield, 2.6);
+    effects.push({ type: "heal", x: hero.supporter.x, y: hero.supporter.y, life: 1.35, max: 1.35 });
+    effects.push({ type: "bloom-ring", x: hero.supporter.x, y: hero.supporter.y, life: 0.95, max: 0.95, color: "#ffadd4" });
+    areaDamage(hero.supporter.x, hero.supporter.y, 138, 28, "flower");
     showToast("Pink panda blooms Honeyheart healing.");
     return true;
   }
@@ -789,7 +889,7 @@ function castBond() {
     jolie.romancePose = 1.5;
     flash = 1;
     effects.push({ type: "heart-phoenix", x: (joku.x + jolie.x) / 2, y: (joku.y + jolie.y) / 2, life: 1.4, max: 1.4 });
-    for (const enemy of enemies) if (enemy.alive) damageEnemy(enemy, enemy.family === "boss" ? 140 : 999, "heart");
+    for (const enemy of enemies) if (enemy.alive) damageEnemy(enemy, enemy.family === "boss" ? 230 : 999, "heart");
     showToast("Heart Bloom Phoenix!");
     return;
   }
@@ -876,8 +976,7 @@ function updateEnemies(dt) {
       enemy.x += enemy.facing * enemy.speed * dt * moveScale;
       if (enemy.family === "boss" && enemy.cooldown <= 0) {
         enemy.cooldown = rand(2.4, 3.6);
-        hazards.push({ type: "curse", x: target.x, y: target.y + 36, r: 82, life: 1.7, tick: 0, color: enemy.glow });
-        showToast(`${enemy.name} casts a curse field.`);
+        bossAttack(enemy, target);
       }
     }
 
@@ -891,6 +990,28 @@ function updateEnemies(dt) {
       }
     }
   }
+}
+
+function bossAttack(enemy, target) {
+  hazards.push({ type: "curse", x: target.x, y: target.y + 36, r: 92, life: 2.1, tick: 0, color: enemy.glow, power: Math.max(10, enemy.damage * 0.52) });
+  effects.push({ type: "boss-ring", x: enemy.x, y: enemy.y, life: 0.82, max: 0.82, color: enemy.glow });
+  const aim = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+  for (let i = -2; i <= 2; i += 1) {
+    const angle = aim + i * 0.18;
+    projectiles.push({
+      x: enemy.x + Math.cos(angle) * enemy.r * 0.75,
+      y: enemy.y + Math.sin(angle) * enemy.r * 0.4,
+      vx: Math.cos(angle) * 390,
+      vy: Math.sin(angle) * 390,
+      r: 13,
+      life: 2.2,
+      damage: Math.round(enemy.damage * 0.72),
+      owner: "enemy",
+      type: "thorn",
+      color: enemy.glow
+    });
+  }
+  showToast(`${enemy.name} casts a curse field.`);
 }
 
 function shootAtTarget(enemy, target) {
@@ -957,13 +1078,13 @@ function updateHazards(dt) {
     if (h.type === "vine") {
       if (h.tick <= 0) {
         h.tick = 0.34;
-        areaDamage(h.x, h.y, h.r, 9, "vine");
+        areaDamage(h.x, h.y, h.r, h.power || 9, "vine");
       }
       for (let j = 0; j < 3; j += 1) addParticle(h.x + rand(-h.r, h.r), h.y + rand(-20, 12), "#ff9fce", 0.6, { vx: rand(-10, 10), vy: rand(-35, -5), size: rand(2, 4), shape: "petal" });
     } else {
       if (h.tick <= 0) {
         h.tick = 0.46;
-        for (const hero of [heroes.joku, heroes.jolie]) if (Math.hypot(hero.x - h.x, hero.y - h.y) < h.r && hero.invulnerable <= 0) hurtHero(hero, 8);
+        for (const hero of [heroes.joku, heroes.jolie]) if (Math.hypot(hero.x - h.x, hero.y - h.y) < h.r && hero.invulnerable <= 0) hurtHero(hero, h.power || 8);
       }
       addParticle(h.x + rand(-h.r, h.r), h.y + rand(-28, 8), h.color || "#9f4a9d", 0.75, { vx: rand(-12, 12), vy: rand(-42, -8), size: rand(2, 5) });
     }
@@ -1011,6 +1132,24 @@ function collectOrbs() {
       }
     }
   }
+}
+
+function getBoss() {
+  return enemies.find((enemy) => enemy.family === "boss") || null;
+}
+
+function updateBossAlert() {
+  if (state !== "playing") return;
+  const boss = getBoss();
+  if (!boss || !boss.alive) return;
+  const frontHeroX = Math.max(heroes.joku.x, heroes.jolie.x);
+  const nearBoss = frontHeroX > boss.x - view.width * 0.92 || boss.hp < boss.maxHp;
+  const key = `${currentMapId}-${boss.id}`;
+  if (!nearBoss || bossBannerKey === key) return;
+  bossBannerKey = key;
+  const map = mapById(currentMapId);
+  showChapterBanner("Boss awakened", boss.name, map.bossIntro, 2.8);
+  showToast(`${boss.name} blocks the gate.`);
 }
 
 function updateCamera(dt) {
@@ -1100,6 +1239,7 @@ function drawBackground() {
   sky.addColorStop(1, "rgba(0, 8, 12, 0.38)");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, view.width, view.height);
+  drawMapSignatureBackdrop(map);
   ctx.globalAlpha = 0.22;
   ctx.strokeStyle = map.accent;
   ctx.lineWidth = 2;
@@ -1113,9 +1253,95 @@ function drawBackground() {
   ctx.restore();
 }
 
+function drawMapSignatureBackdrop(map) {
+  ctx.save();
+  if (map.id === "heartfall") {
+    for (let i = 0; i < 4; i += 1) {
+      const x = ((i * 310 - view.x * 0.15) % (view.width + 360)) - 110;
+      const stream = ctx.createLinearGradient(x, 70, x + 88, view.height);
+      stream.addColorStop(0, "rgba(156, 240, 255, 0.08)");
+      stream.addColorStop(0.35, "rgba(156, 240, 255, 0.2)");
+      stream.addColorStop(1, "rgba(255, 255, 255, 0.03)");
+      ctx.fillStyle = stream;
+      roundedRect(x, 64, 82, view.height + 60, 32);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 26, 95);
+      ctx.bezierCurveTo(x + 54, 210, x + 14, 350, x + 58, view.height);
+      ctx.stroke();
+    }
+  } else if (map.id === "lotus") {
+    for (let i = 0; i < 9; i += 1) {
+      const x = ((i * 175 - view.x * 0.18) % (view.width + 220)) - 80;
+      const y = 148 + (i % 4) * 38 + Math.sin(elapsed * 0.8 + i) * 9;
+      ctx.strokeStyle = "rgba(255, 230, 160, 0.2)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, y - 22);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 211, 108, 0.28)";
+      roundedRect(x - 12, y - 20, 24, 34, 7);
+      ctx.fill();
+      ctx.fillStyle = "rgba(128, 255, 224, 0.16)";
+      ctx.beginPath();
+      ctx.ellipse(x, y + 58, 54, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (map.id === "crystal") {
+    for (let i = 0; i < 10; i += 1) {
+      const x = ((i * 220 - view.x * 0.12) % (view.width + 260)) - 90;
+      const h = 150 + (i % 4) * 42;
+      ctx.fillStyle = i % 2 ? "rgba(179, 162, 255, 0.2)" : "rgba(155, 244, 255, 0.22)";
+      ctx.beginPath();
+      ctx.moveTo(x, view.height);
+      ctx.lineTo(x + 28, view.height - h);
+      ctx.lineTo(x + 68, view.height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  } else if (map.id === "aurora") {
+    for (let band = 0; band < 3; band += 1) {
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = band % 2 ? map.bloom : map.accent;
+      ctx.lineWidth = 22 - band * 4;
+      ctx.beginPath();
+      for (let x = -40; x <= view.width + 40; x += 36) {
+        const y = 106 + band * 48 + Math.sin((x + view.x * 0.22) * 0.012 + elapsed * 0.55 + band) * 32;
+        if (x === -40) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (map.id === "eternal") {
+    const gateX = view.width * 0.5 - (view.x / world.width - 0.5) * 260;
+    ctx.strokeStyle = "rgba(255, 229, 154, 0.14)";
+    ctx.lineWidth = 7;
+    for (let i = 0; i < 12; i += 1) {
+      const angle = (i / 12) * Math.PI * 2 + elapsed * 0.06;
+      ctx.beginPath();
+      ctx.moveTo(gateX, 210);
+      ctx.lineTo(gateX + Math.cos(angle) * 520, 210 + Math.sin(angle) * 310);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(255, 111, 174, 0.14)";
+    ctx.beginPath();
+    drawHeartPath(gateX, 198, 62);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawWorldDetails() {
   drawMoonGate();
   for (const platform of platforms) drawPlatform(platform);
+  drawScenicMagic();
   const map = mapById(currentMapId);
   ctx.save();
   ctx.globalAlpha = 0.18;
@@ -1126,6 +1352,105 @@ function drawWorldDetails() {
     ctx.beginPath();
     ctx.ellipse(x, y, 130, 11, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawScenicMagic() {
+  const map = mapById(currentMapId);
+  ctx.save();
+  for (let i = 0; i < 18; i += 1) {
+    const x = 360 + i * 210;
+    if (x < view.x - 220 || x > view.x + view.width + 220) continue;
+    const y = 285 + Math.sin(elapsed * 1.2 + i) * 42 + (i % 3) * 46;
+    const color = i % 2 ? map.bloom : map.accent;
+    ctx.globalAlpha = 0.42;
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 18 + Math.sin(elapsed * 2 + i) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.24;
+    ctx.fillStyle = color;
+    if (i % 2) {
+      drawSmallFlower(x, y, 8, color);
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.58;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x - 4, y - 5, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 22; i += 1) {
+    const x = 220 + i * 175;
+    if (x < view.x - 180 || x > view.x + view.width + 180) continue;
+    const baseY = 616 - (i % 4) * 34 + Math.sin(elapsed + i) * 3;
+    if (map.id === "heartfall") {
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = i % 2 ? map.cap : "#7deeff";
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.beginPath();
+      ctx.ellipse(x, baseY, 20, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.62)";
+      for (let d = -1; d <= 1; d += 1) {
+        ctx.beginPath();
+        ctx.arc(x + d * 9, baseY - 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (map.id === "lotus") {
+      ctx.globalAlpha = 0.68;
+      ctx.strokeStyle = "rgba(255, 231, 160, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY - 4);
+      ctx.lineTo(x, baseY - 60);
+      ctx.stroke();
+      ctx.fillStyle = map.bloom;
+      roundedRect(x - 11, baseY - 66, 22, 28, 7);
+      ctx.fill();
+      drawSmallFlower(x + 24, baseY - 10, 7, "#ffd36c");
+    } else if (map.id === "crystal") {
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = i % 2 ? "#9bf4ff" : "#b3a2ff";
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY + 10);
+      ctx.lineTo(x + 13, baseY - 54);
+      ctx.lineTo(x + 30, baseY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.stroke();
+    } else if (map.id === "aurora") {
+      ctx.globalAlpha = 0.72;
+      ctx.strokeStyle = i % 2 ? map.bloom : map.accent;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x - 28, baseY - 70);
+      ctx.quadraticCurveTo(x + 20, baseY - 115 + Math.sin(elapsed + i) * 18, x + 62, baseY - 76);
+      ctx.stroke();
+      drawSmallFlower(x, baseY - 28, 6, map.bloom);
+    } else if (map.id === "eternal") {
+      ctx.globalAlpha = 0.62;
+      ctx.strokeStyle = i % 2 ? "#ffe59a" : map.bloom;
+      ctx.lineWidth = 2.2;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.beginPath();
+      drawHeartPath(x, baseY - 20, 18);
+      ctx.stroke();
+      drawTinySparkle(x + 24, baseY - 42, 4, "#ffe59a");
+    }
   }
   ctx.restore();
 }
@@ -1229,9 +1554,13 @@ function drawProjectiles() {
     if (p.type === "water") {
       ctx.translate(p.x, p.y);
       ctx.rotate(Math.atan2(p.vy, p.vx));
-      ctx.shadowBlur = 22;
+      ctx.shadowBlur = 28;
       ctx.shadowColor = "#61e5ff";
-      ctx.fillStyle = "#78eaff";
+      const waterGrad = ctx.createLinearGradient(-p.r * 1.8, 0, p.r * 1.8, 0);
+      waterGrad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+      waterGrad.addColorStop(0.44, "#78eaff");
+      waterGrad.addColorStop(1, "#1a8ef2");
+      ctx.fillStyle = waterGrad;
       ctx.beginPath();
       ctx.ellipse(0, 0, p.r * 1.6, p.r * 0.62, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -1240,34 +1569,53 @@ function drawProjectiles() {
       ctx.beginPath();
       ctx.arc(-4, 0, p.r * 0.9, -0.9, 1.2);
       ctx.stroke();
+      ctx.globalAlpha = 0.38;
+      ctx.strokeStyle = "#d8f8ff";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-p.r * 2.7, -p.r * 0.35);
+      ctx.quadraticCurveTo(-p.r * 1.3, p.r * 0.6, p.r * 0.5, p.r * 0.18);
+      ctx.stroke();
     } else if (p.type === "flower") {
       ctx.translate(p.x, p.y);
       ctx.rotate(elapsed * 8);
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 24;
       ctx.shadowColor = "#ff8ec4";
-      for (let i = 0; i < 5; i += 1) {
-        ctx.rotate((Math.PI * 2) / 5);
+      for (let i = 0; i < 8; i += 1) {
+        ctx.rotate((Math.PI * 2) / 8);
         ctx.fillStyle = i % 2 ? "#ffd1e5" : "#ff7cba";
         ctx.beginPath();
-        ctx.ellipse(0, -p.r * 0.52, p.r * 0.34, p.r, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, -p.r * 0.55, p.r * 0.28, p.r * 0.95, 0, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.fillStyle = "#fff5a2";
       ctx.beginPath();
       ctx.arc(0, 0, p.r * 0.35, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.r * 0.72, 0, Math.PI * 2);
+      ctx.stroke();
     } else if (p.type === "paw-blue") {
       drawPaw(p.x, p.y, p.r, "#8fe9ff");
     } else {
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 18;
       ctx.shadowColor = p.color || "#b64aa0";
-      ctx.fillStyle = p.color || "#a64491";
+      const thornGrad = ctx.createLinearGradient(p.x, p.y - p.r, p.x, p.y + p.r);
+      thornGrad.addColorStop(0, "#fff3d8");
+      thornGrad.addColorStop(0.36, p.color || "#b64aa0");
+      thornGrad.addColorStop(1, "#160719");
+      ctx.fillStyle = thornGrad;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y - p.r);
       ctx.lineTo(p.x + p.r * 0.55, p.y + p.r);
       ctx.lineTo(p.x - p.r * 0.55, p.y + p.r);
       ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -1278,29 +1626,47 @@ function drawHazards() {
     ctx.save();
     const a = clamp(h.life, 0, 1);
     if (h.type === "vine") {
-      ctx.globalAlpha = 0.55 * a;
-      ctx.fillStyle = "#ff8fc4";
+      ctx.globalAlpha = 0.62 * a;
+      const vineGlow = ctx.createRadialGradient(h.x, h.y, 12, h.x, h.y, h.r);
+      vineGlow.addColorStop(0, "rgba(255, 245, 162, 0.55)");
+      vineGlow.addColorStop(0.42, "rgba(255, 143, 196, 0.38)");
+      vineGlow.addColorStop(1, "rgba(120, 224, 156, 0.1)");
+      ctx.fillStyle = vineGlow;
       ctx.strokeStyle = "#78e09c";
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.ellipse(h.x, h.y, h.r, 22, 0, 0, Math.PI * 2);
       ctx.fill();
-      for (let i = 0; i < 9; i += 1) {
-        const angle = (i / 9) * Math.PI * 2 + elapsed;
+      for (let i = 0; i < 12; i += 1) {
+        const angle = (i / 12) * Math.PI * 2 + elapsed;
         ctx.beginPath();
         ctx.moveTo(h.x, h.y + 4);
         ctx.quadraticCurveTo(h.x + Math.cos(angle) * h.r * 0.4, h.y - 42, h.x + Math.cos(angle) * h.r, h.y + Math.sin(angle) * 18);
         ctx.stroke();
+        if (i % 3 === 0) drawSmallFlower(h.x + Math.cos(angle) * h.r * 0.72, h.y + Math.sin(angle) * 16 - 8, 6, "#ff9fce");
       }
     } else {
       ctx.globalAlpha = 0.42 * a;
-      ctx.fillStyle = h.color || "#773077";
+      const curseGrad = ctx.createRadialGradient(h.x, h.y, 4, h.x, h.y, h.r);
+      curseGrad.addColorStop(0, "rgba(255, 255, 255, 0.22)");
+      curseGrad.addColorStop(0.38, h.color || "#773077");
+      curseGrad.addColorStop(1, "rgba(34, 4, 40, 0.04)");
+      ctx.fillStyle = curseGrad;
       ctx.strokeStyle = "#f3b5e0";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.ellipse(h.x, h.y, h.r, 20, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+      ctx.strokeStyle = h.color || "#f3b5e0";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (i / 8) * Math.PI * 2 + elapsed * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(h.x + Math.cos(angle) * h.r * 0.22, h.y + Math.sin(angle) * 13);
+        ctx.lineTo(h.x + Math.cos(angle) * h.r * 0.82, h.y + Math.sin(angle) * 21);
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -1325,49 +1691,114 @@ function drawEnemies() {
 }
 
 function drawFlyingEnemy(enemy) {
-  ctx.fillStyle = enemy.color;
+  const wingBeat = Math.sin(elapsed * 9 + enemy.x * 0.02);
+  ctx.globalAlpha *= 0.86;
+  ctx.fillStyle = enemy.glow;
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.scale(side, 1);
+    ctx.beginPath();
+    ctx.ellipse(enemy.r * 1.2, -3, enemy.r * 0.95, enemy.r * 0.35, wingBeat * 0.24, 0, Math.PI * 2);
+    ctx.ellipse(enemy.r * 1.6, 9, enemy.r * 0.58, enemy.r * 0.24, -wingBeat * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  const body = ctx.createRadialGradient(-8, -9, 4, 0, 0, enemy.r * 1.35);
+  body.addColorStop(0, enemy.glow);
+  body.addColorStop(0.38, enemy.color);
+  body.addColorStop(1, "#140719");
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.ellipse(0, 0, enemy.r * 1.05, enemy.r * 1.22, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.globalAlpha *= 0.85;
-  ctx.fillStyle = enemy.glow;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.24)";
+  ctx.lineWidth = 1.4;
   ctx.beginPath();
-  ctx.ellipse(-enemy.r * 1.25, 0, enemy.r * 0.9, enemy.r * 0.38, Math.sin(elapsed * 8) * 0.25, 0, Math.PI * 2);
-  ctx.ellipse(enemy.r * 1.25, 0, enemy.r * 0.9, enemy.r * 0.38, -Math.sin(elapsed * 8) * 0.25, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.arc(0, 0, enemy.r * 0.85, elapsed, elapsed + Math.PI * 1.25);
+  ctx.stroke();
   ctx.fillStyle = "#fff3d8";
   ctx.beginPath();
   ctx.arc(-8, -3, 4, 0, Math.PI * 2);
   ctx.arc(8, -3, 4, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#160719";
+  ctx.beginPath();
+  ctx.arc(-7, -3, 1.8, 0, Math.PI * 2);
+  ctx.arc(9, -3, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = enemy.glow;
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  for (let i = -1; i <= 1; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 9, -enemy.r * 0.88);
+    ctx.lineTo(i * 15, -enemy.r * 1.26);
+    ctx.stroke();
+  }
 }
 
 function drawSerpentEnemy(enemy) {
-  ctx.fillStyle = enemy.color;
-  ctx.beginPath();
-  ctx.ellipse(0, 4, enemy.r * 1.5, enemy.r * 0.58, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = enemy.glow;
-  for (let i = -2; i <= 2; i += 1) {
+  for (let i = -3; i <= 3; i += 1) {
+    const bob = Math.sin(elapsed * 4 + i * 0.9) * 5;
+    const shade = i % 2 ? enemy.color : "#163348";
+    ctx.fillStyle = shade;
     ctx.beginPath();
-    ctx.ellipse(i * 15, -3 + Math.sin(elapsed * 4 + i) * 4, 6, 13, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(i * 15, 4 + bob, enemy.r * 0.48, enemy.r * 0.48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.fillStyle = enemy.glow;
+  for (let i = -3; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(i * 15, -7 + Math.sin(elapsed * 4 + i) * 4, 5, 12, 0.3, 0, Math.PI * 2);
     ctx.fill();
   }
+  const headGrad = ctx.createRadialGradient(enemy.r * 0.8, -7, 3, enemy.r * 0.72, -2, enemy.r * 0.72);
+  headGrad.addColorStop(0, enemy.glow);
+  headGrad.addColorStop(0.5, enemy.color);
+  headGrad.addColorStop(1, "#0f1b28");
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  ctx.ellipse(enemy.r * 0.86, -1, enemy.r * 0.62, enemy.r * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = "#07131a";
   ctx.beginPath();
   ctx.arc(enemy.r * 0.9, -2, 3, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(enemy.r * 1.1, 7);
+  ctx.lineTo(enemy.r * 1.22, 15);
+  ctx.lineTo(enemy.r * 0.98, 10);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawGroundEnemy(enemy) {
-  ctx.fillStyle = enemy.color;
+  const body = ctx.createLinearGradient(-enemy.r, -enemy.r, enemy.r, enemy.r);
+  body.addColorStop(0, enemy.glow);
+  body.addColorStop(0.28, enemy.color);
+  body.addColorStop(1, "#160719");
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.ellipse(0, 4, enemy.r * 1.18, enemy.r * 0.8, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = enemy.glow;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 9, -enemy.r * 0.42);
+    ctx.quadraticCurveTo(i * 13, -enemy.r * 0.92, i * 21, -enemy.r * 1.12);
+    ctx.stroke();
+  }
+
   ctx.strokeStyle = "#160719";
   ctx.lineWidth = 5;
-  ctx.lineCap = "round";
   for (let i = -2; i <= 2; i += 1) {
     ctx.beginPath();
     ctx.moveTo(i * 8, 8);
@@ -1379,10 +1810,87 @@ function drawGroundEnemy(enemy) {
   ctx.arc(-9, -4, 4, 0, Math.PI * 2);
   ctx.arc(9, -4, 4, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#fff3d8";
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.ellipse(0, 13, enemy.r * 0.46, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
 }
 
 function drawBossEnemy(enemy) {
-  ctx.fillStyle = enemy.color;
+  const pulse = 0.5 + Math.sin(elapsed * 3.4 + enemy.x) * 0.5;
+  ctx.save();
+  ctx.globalAlpha = 0.22 + pulse * 0.12;
+  ctx.strokeStyle = enemy.glow;
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 3; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(0, -2, enemy.r * (1.55 + i * 0.32 + pulse * 0.08), enemy.r * (0.92 + i * 0.18), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = enemy.glow;
+  for (let i = 0; i < 6; i += 1) {
+    const angle = (i / 6) * Math.PI * 2 + elapsed * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * enemy.r * 0.92, Math.sin(angle) * enemy.r * 0.55);
+    ctx.lineTo(Math.cos(angle + 0.18) * enemy.r * 1.34, Math.sin(angle + 0.18) * enemy.r * 0.82);
+    ctx.lineTo(Math.cos(angle - 0.18) * enemy.r * 1.34, Math.sin(angle - 0.18) * enemy.r * 0.82);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  if (enemy.type === "lotusQueen") {
+    ctx.fillStyle = enemy.glow;
+    for (let i = 0; i < 14; i += 1) {
+      const angle = (i / 14) * Math.PI * 2 + Math.sin(elapsed) * 0.08;
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.ellipse(0, -enemy.r * 1.05, enemy.r * 0.22, enemy.r * 0.54, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  if (enemy.type === "tideGolem") {
+    ctx.fillStyle = "#9bf4ff";
+    for (let i = -2; i <= 2; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(i * 28, -enemy.r * 0.8);
+      ctx.lineTo(i * 28 + 13, -enemy.r * 1.5 - Math.abs(i) * 6);
+      ctx.lineTo(i * 28 + 28, -enemy.r * 0.72);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  if (enemy.type === "skyWarden") {
+    ctx.fillStyle = "rgba(255, 173, 212, 0.62)";
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.scale(side, 1);
+      for (let i = 0; i < 5; i += 1) {
+        ctx.beginPath();
+        ctx.ellipse(enemy.r * 0.78 + i * 10, -8 + i * 7, enemy.r * 0.5, enemy.r * 0.16, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  if (enemy.type === "heartEclipse") {
+    ctx.strokeStyle = "#ffe59a";
+    ctx.lineWidth = 6;
+    for (let i = 0; i < 2; i += 1) {
+      ctx.beginPath();
+      ctx.ellipse(0, -4, enemy.r * (1.42 + i * 0.24), enemy.r * (0.78 + i * 0.12), elapsed * 0.6 + i, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  const bossGrad = ctx.createRadialGradient(-enemy.r * 0.25, -enemy.r * 0.35, enemy.r * 0.2, 0, 0, enemy.r * 1.28);
+  bossGrad.addColorStop(0, enemy.glow);
+  bossGrad.addColorStop(0.35, enemy.color);
+  bossGrad.addColorStop(1, "#130714");
+  ctx.fillStyle = bossGrad;
   ctx.beginPath();
   drawHeartPath(0, -2, enemy.r * 1.08);
   ctx.fill();
@@ -1398,10 +1906,20 @@ function drawBossEnemy(enemy) {
     ctx.lineTo(Math.cos(angle) * 78, Math.sin(angle) * 50);
     ctx.stroke();
   }
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, -2, enemy.r * 0.58, 0.15, Math.PI * 1.2);
+  ctx.stroke();
   ctx.fillStyle = enemy.glow;
   ctx.beginPath();
   ctx.arc(-16, -8, 7, 0, Math.PI * 2);
   ctx.arc(16, -8, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#160719";
+  ctx.beginPath();
+  ctx.arc(-14, -8, 2.7, 0, Math.PI * 2);
+  ctx.arc(18, -8, 2.7, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -1440,6 +1958,23 @@ function drawHero(hero) {
   const walk = Math.sin(t + hero.x * 0.04) * Math.min(1, Math.abs(hero.vx) / 160);
   ctx.save();
   ctx.translate(hero.x, hero.y);
+  if (state === "playing" && hero.id === activeHeroId) {
+    ctx.save();
+    ctx.globalAlpha = 0.62 + Math.sin(elapsed * 5) * 0.12;
+    ctx.strokeStyle = hero.colors.glow;
+    ctx.fillStyle = hero.colors.glow;
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = hero.colors.glow;
+    ctx.beginPath();
+    ctx.ellipse(0, 46, 38, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, -5, 53, -0.2, Math.PI * 1.2);
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.scale(hero.facing, 1);
   if (hero.invulnerable > 0 && Math.floor(elapsed * 18) % 2 === 0) ctx.globalAlpha = 0.62;
   if (hero.id === "joku") drawJoku(hero, walk);
@@ -1460,11 +1995,12 @@ function drawHero(hero) {
 function drawJoku(hero, walk) {
   const colors = hero.colors;
   ctx.save();
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = 22;
   ctx.shadowColor = colors.glow;
   drawPhoenixWings(hero);
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = "#1b1721";
+
+  ctx.strokeStyle = "#101925";
   ctx.lineWidth = 8;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -1473,9 +2009,44 @@ function drawJoku(hero, walk) {
   ctx.moveTo(10, 18);
   ctx.lineTo(15 - walk * 5, 38);
   ctx.stroke();
-  ctx.fillStyle = colors.coat;
+
+  ctx.strokeStyle = "#73e7ff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-15 + walk * 5, 38);
+  ctx.lineTo(-22 + walk * 4, 42);
+  ctx.moveTo(15 - walk * 5, 38);
+  ctx.lineTo(22 - walk * 4, 42);
+  ctx.stroke();
+
+  const tailGrad = ctx.createLinearGradient(-26, -18, 26, 34);
+  tailGrad.addColorStop(0, "#0e376f");
+  tailGrad.addColorStop(0.48, colors.coat);
+  tailGrad.addColorStop(1, "#6fe7ff");
+  ctx.fillStyle = tailGrad;
+  ctx.beginPath();
+  ctx.moveTo(-18, -14);
+  ctx.quadraticCurveTo(-34, 12, -22, 46);
+  ctx.quadraticCurveTo(-5, 33, 0, 18);
+  ctx.quadraticCurveTo(5, 33, 22, 46);
+  ctx.quadraticCurveTo(34, 12, 18, -14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(216, 248, 255, 0.65)";
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  const coatGrad = ctx.createLinearGradient(-18, -30, 18, 24);
+  coatGrad.addColorStop(0, "#2d6ec1");
+  coatGrad.addColorStop(0.58, colors.coat);
+  coatGrad.addColorStop(1, "#0c2b5b");
+  ctx.fillStyle = coatGrad;
   roundedRect(-18, -28, 36, 52, 10);
   ctx.fill();
+  ctx.strokeStyle = "#ffd36c";
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
   ctx.fillStyle = "#f7fbff";
   ctx.beginPath();
   ctx.moveTo(-8, -26);
@@ -1484,6 +2055,21 @@ function drawJoku(hero, walk) {
   ctx.lineTo(-10, 10);
   ctx.closePath();
   ctx.fill();
+
+  ctx.fillStyle = "#ffe7a0";
+  roundedRect(-20, -7, 40, 7, 4);
+  ctx.fill();
+  ctx.fillStyle = colors.accent;
+  ctx.beginPath();
+  ctx.arc(0, -4, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(0, -9);
+  ctx.bezierCurveTo(7, -1, 5, 6, 0, 9);
+  ctx.bezierCurveTo(-5, 6, -7, -1, 0, -9);
+  ctx.fill();
+
   ctx.strokeStyle = "#ffd36c";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -1492,8 +2078,19 @@ function drawJoku(hero, walk) {
   ctx.moveTo(-13, 6);
   ctx.lineTo(11, 4);
   ctx.stroke();
+
   drawArm(-16, -12, -31, 4 + walk * 6, colors.skin, colors.coat);
   drawArm(16, -12, 31, 0 - walk * 5, colors.skin, colors.coat);
+  ctx.strokeStyle = "#d8f8ff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(25, 5 - walk * 5);
+  ctx.quadraticCurveTo(42, -5, 51, -24);
+  ctx.stroke();
+  ctx.fillStyle = "#7deeff";
+  ctx.beginPath();
+  ctx.ellipse(53, -28, 7, 15, -0.5, 0, Math.PI * 2);
+  ctx.fill();
   drawHead(colors.skin, colors.hair, colors.accent, "joku");
   ctx.restore();
 }
@@ -1501,23 +2098,34 @@ function drawJoku(hero, walk) {
 function drawPhoenixWings(hero) {
   const flap = Math.sin(elapsed * 5) * 5 + (hero.castPose > 0 ? 8 : 0);
   ctx.save();
-  ctx.globalAlpha = 0.84;
-  ctx.fillStyle = "#6fe7ff";
-  ctx.strokeStyle = "#d8f8ff";
-  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.9;
   for (const side of [-1, 1]) {
     ctx.save();
     ctx.scale(side, 1);
-    for (let i = 0; i < 7; i += 1) {
+    for (let i = 0; i < 9; i += 1) {
+      const length = 48 + i * 8;
+      const y = -28 + i * 7 + flap * 0.24;
+      const feather = ctx.createLinearGradient(0, -35, -length, y + 10);
+      feather.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+      feather.addColorStop(0.3, "rgba(119, 238, 255, 0.88)");
+      feather.addColorStop(1, "rgba(31, 116, 227, 0.16)");
+      ctx.fillStyle = feather;
+      ctx.strokeStyle = i % 2 ? "rgba(216, 248, 255, 0.72)" : "rgba(100, 232, 255, 0.9)";
+      ctx.lineWidth = i < 3 ? 2.4 : 1.5;
       ctx.beginPath();
-      const length = 54 + i * 8;
-      const y = -22 + i * 8 + flap * 0.28;
       ctx.moveTo(4, -20);
-      ctx.quadraticCurveTo(-36 - i * 9, y - 36 - flap, -length, y);
-      ctx.quadraticCurveTo(-34 - i * 8, y + 8, 0, -4);
+      ctx.quadraticCurveTo(-34 - i * 8, y - 42 - flap, -length, y);
+      ctx.quadraticCurveTo(-38 - i * 6, y + 9, 0, -4);
       ctx.fill();
       ctx.stroke();
+      if (i % 3 === 0) drawTinySparkle(-length * 0.62, y - 8, 3.5, "#d8f8ff");
     }
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(0, -19);
+    ctx.quadraticCurveTo(-52, -64 - flap, -112, 6);
+    ctx.stroke();
     ctx.restore();
   }
   ctx.restore();
@@ -1526,10 +2134,11 @@ function drawPhoenixWings(hero) {
 function drawJolie(hero, walk) {
   const colors = hero.colors;
   ctx.save();
-  ctx.shadowBlur = 16;
+  ctx.shadowBlur = 18;
   ctx.shadowColor = colors.glow;
   drawPetalAura(hero);
   ctx.shadowBlur = 0;
+
   ctx.strokeStyle = "#3a2430";
   ctx.lineWidth = 8;
   ctx.lineCap = "round";
@@ -1539,13 +2148,29 @@ function drawJolie(hero, walk) {
   ctx.moveTo(9, 18);
   ctx.lineTo(13 - walk * 5, 39);
   ctx.stroke();
-  ctx.fillStyle = colors.coat;
+
+  ctx.fillStyle = "rgba(255, 190, 220, 0.45)";
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(i * 9, 19, 9, 27, i * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const dressGrad = ctx.createLinearGradient(0, -32, 0, 34);
+  dressGrad.addColorStop(0, "#ffd5e8");
+  dressGrad.addColorStop(0.32, colors.coat);
+  dressGrad.addColorStop(1, "#bf3d86");
+  ctx.fillStyle = dressGrad;
   ctx.beginPath();
   ctx.moveTo(0, -30);
   ctx.lineTo(24, 20);
   ctx.quadraticCurveTo(0, 34, -24, 20);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "#fff0a7";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
   ctx.fillStyle = colors.accent;
   ctx.beginPath();
   ctx.moveTo(-13, -24);
@@ -1554,43 +2179,75 @@ function drawJolie(hero, walk) {
   ctx.lineTo(-7, 13);
   ctx.closePath();
   ctx.fill();
+  ctx.fillStyle = "#fff5a2";
+  ctx.beginPath();
+  ctx.arc(0, -12, 5, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.strokeStyle = "#fff2a7";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(0, -8, 13, 0.1, Math.PI - 0.1);
   ctx.stroke();
+
   drawArm(-16, -12, -30, 0 + walk * 4, colors.skin, colors.coat);
   drawArm(16, -12, 31, 5 - walk * 6, colors.skin, colors.coat);
+  ctx.strokeStyle = "#78e09c";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(29, 6 - walk * 6);
+  ctx.quadraticCurveTo(44, -8, 53, -31);
+  ctx.stroke();
+  drawSmallFlower(55, -35, 8, "#ff96c9");
   drawHead(colors.skin, colors.hair, colors.accent, "jolie");
   ctx.restore();
 }
 
 function drawPetalAura() {
   ctx.save();
-  for (let i = 0; i < 7; i += 1) {
-    const angle = elapsed * 1.4 + i * 0.9;
-    const x = Math.cos(angle) * (34 + Math.sin(elapsed + i) * 5);
-    const y = -12 + Math.sin(angle) * 48;
+  for (let i = 0; i < 12; i += 1) {
+    const angle = elapsed * 1.35 + i * 0.62;
+    const x = Math.cos(angle) * (36 + Math.sin(elapsed + i) * 7);
+    const y = -13 + Math.sin(angle) * 50;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
-    ctx.globalAlpha = 0.56;
+    ctx.globalAlpha = 0.48 + (i % 3) * 0.08;
     ctx.fillStyle = i % 2 ? "#ffd0e5" : "#ff80bd";
     ctx.beginPath();
-    ctx.ellipse(0, 0, 5, 12, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 4.5 + (i % 3), 10 + (i % 4), 0, 0, Math.PI * 2);
     ctx.fill();
+    if (i % 4 === 0) drawTinySparkle(0, -12, 3, "#fff5a2");
     ctx.restore();
   }
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = "#78e09c";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(0, -9, 44, -0.3, Math.PI * 1.15);
+  ctx.stroke();
   ctx.restore();
 }
 
 function drawArm(sx, sy, ex, ey, skin, sleeve) {
-  ctx.strokeStyle = sleeve;
-  ctx.lineWidth = 8;
+  ctx.strokeStyle = "rgba(24, 12, 26, 0.45)";
+  ctx.lineWidth = 10;
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(sx, sy);
   ctx.quadraticCurveTo((sx + ex) / 2, sy + 12, ex, ey);
+  ctx.stroke();
+  ctx.strokeStyle = sleeve;
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.quadraticCurveTo((sx + ex) / 2, sy + 12, ex, ey);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx + 1, sy - 1);
+  ctx.quadraticCurveTo((sx + ex) / 2, sy + 7, ex - 1, ey - 1);
   ctx.stroke();
   ctx.fillStyle = skin;
   ctx.beginPath();
@@ -1599,10 +2256,21 @@ function drawArm(sx, sy, ex, ey, skin, sleeve) {
 }
 
 function drawHead(skin, hair, accent, heroId) {
-  ctx.fillStyle = skin;
+  const skinGrad = ctx.createRadialGradient(-6, -56, 3, 0, -50, 20);
+  skinGrad.addColorStop(0, "#fff2da");
+  skinGrad.addColorStop(0.58, skin);
+  skinGrad.addColorStop(1, "#d99c83");
+  ctx.fillStyle = skinGrad;
   ctx.beginPath();
   ctx.arc(0, -50, 17, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.fillStyle = "rgba(255, 130, 160, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(-9, -47, 4, 2, 0, 0, Math.PI * 2);
+  ctx.ellipse(10, -47, 4, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = hair;
   ctx.beginPath();
   if (heroId === "joku") {
@@ -1620,18 +2288,47 @@ function drawHead(skin, hair, accent, heroId) {
   }
   ctx.closePath();
   ctx.fill();
+
+  ctx.strokeStyle = heroId === "joku" ? "#4bdfff" : "#ffadd4";
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  if (heroId === "joku") {
+    ctx.moveTo(-13, -61);
+    ctx.quadraticCurveTo(-2, -70, 11, -61);
+  } else {
+    ctx.moveTo(-10, -63);
+    ctx.quadraticCurveTo(5, -72, 18, -58);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
   ctx.fillStyle = "#13202a";
   ctx.beginPath();
-  ctx.arc(-6, -51, 2, 0, Math.PI * 2);
-  ctx.arc(7, -51, 2, 0, Math.PI * 2);
+  ctx.ellipse(-6, -51, 2.4, 3.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(7, -51, 2.4, 3.2, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(-6.8, -52.2, 0.8, 0, Math.PI * 2);
+  ctx.arc(6.2, -52.2, 0.8, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.strokeStyle = "#8c5b4f";
   ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.arc(1, -46, 5, 0.15, Math.PI - 0.15);
   ctx.stroke();
-  if (heroId === "jolie") drawSmallFlower(14, -66, 6, accent);
-  else {
+
+  if (heroId === "jolie") {
+    drawSmallFlower(14, -66, 6, accent);
+    drawSmallFlower(4, -68, 4.2, "#ffd0e5");
+    ctx.strokeStyle = "#fff2a7";
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(5, -64, 15, Math.PI * 1.1, Math.PI * 1.85);
+    ctx.stroke();
+  } else {
     ctx.fillStyle = accent;
     ctx.beginPath();
     ctx.moveTo(-16, -61);
@@ -1639,6 +2336,7 @@ function drawHead(skin, hair, accent, heroId) {
     ctx.lineTo(-8, -55);
     ctx.closePath();
     ctx.fill();
+    drawTinySparkle(-9, -65, 3.5, "#d8f8ff");
   }
 }
 
@@ -1659,6 +2357,22 @@ function drawSmallFlower(x, y, r, color) {
   ctx.restore();
 }
 
+function drawTinySparkle(x, y, r, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, r * 0.35);
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = color;
+  ctx.beginPath();
+  ctx.moveTo(-r, 0);
+  ctx.lineTo(r, 0);
+  ctx.moveTo(0, -r);
+  ctx.lineTo(0, r);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawSupporter(hero) {
   if (hero.id === "joku") drawBlueDog(hero.supporter.x, hero.supporter.y, hero.facing, hero.colors.support);
   else drawPinkPanda(hero.supporter.x, hero.supporter.y, hero.facing, hero.colors.support);
@@ -1668,15 +2382,28 @@ function drawBlueDog(x, y, facing, color) {
   ctx.save();
   ctx.translate(x, y + Math.sin(elapsed * 8) * 3);
   ctx.scale(facing, 1);
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 16;
   ctx.shadowColor = color;
-  ctx.fillStyle = color;
+  const body = ctx.createLinearGradient(-25, -16, 28, 14);
+  body.addColorStop(0, "#d9f8ff");
+  body.addColorStop(0.34, color);
+  body.addColorStop(1, "#2d87d9");
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.ellipse(0, 0, 25, 15, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.arc(21, -8, 13, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = 0.78;
+  ctx.beginPath();
+  ctx.ellipse(-7, 2, 9, 7, 0.1, 0, Math.PI * 2);
+  ctx.ellipse(19, -5, 7, 6, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
   ctx.fillStyle = "#e7fbff";
   ctx.beginPath();
   ctx.moveTo(14, -19);
@@ -1688,6 +2415,15 @@ function drawBlueDog(x, y, facing, color) {
   ctx.lineTo(39, -9);
   ctx.closePath();
   ctx.fill();
+
+  ctx.fillStyle = "#1d76c8";
+  ctx.beginPath();
+  ctx.ellipse(-2, -6, 10, 7, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffd36c";
+  roundedRect(-9, -12, 14, 7, 3);
+  ctx.fill();
+
   ctx.strokeStyle = color;
   ctx.lineWidth = 7;
   ctx.lineCap = "round";
@@ -1695,15 +2431,34 @@ function drawBlueDog(x, y, facing, color) {
   ctx.moveTo(-22, -1);
   ctx.quadraticCurveTo(-38, -18, -28, -28);
   ctx.stroke();
+  ctx.strokeStyle = "#e7fbff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-23, 0);
+  ctx.quadraticCurveTo(-34, -14, -28, -24);
+  ctx.stroke();
+
+  ctx.fillStyle = "#0f3150";
+  for (const px of [-13, 0, 13]) {
+    ctx.beginPath();
+    ctx.ellipse(px, 13, 5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   ctx.fillStyle = "#061a24";
   ctx.beginPath();
-  ctx.arc(25, -10, 2.5, 0, Math.PI * 2);
+  ctx.arc(25, -10, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(24.2, -11, 0.7, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(30, -4, 5, 0.1, Math.PI - 0.1);
   ctx.stroke();
+  drawTinySparkle(8, -19, 3, "#d8f8ff");
   ctx.restore();
 }
 
@@ -1711,9 +2466,13 @@ function drawPinkPanda(x, y, facing, color) {
   ctx.save();
   ctx.translate(x, y + Math.sin(elapsed * 7 + 1) * 3);
   ctx.scale(facing, 1);
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 16;
   ctx.shadowColor = color;
-  ctx.fillStyle = "#ffd8e8";
+  const body = ctx.createRadialGradient(10, -16, 4, 0, 0, 32);
+  body.addColorStop(0, "#fff7fb");
+  body.addColorStop(0.55, "#ffd8e8");
+  body.addColorStop(1, "#ff9ccc");
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.ellipse(0, 0, 22, 20, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -1727,17 +2486,46 @@ function drawPinkPanda(x, y, facing, color) {
   ctx.arc(12, -18, 5, 0, Math.PI * 2);
   ctx.arc(24, -18, 5, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.ellipse(-4, 2, 8, 10, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = "#ff7fba";
+  roundedRect(-18, -6, 12, 16, 5);
+  ctx.fill();
+  ctx.fillStyle = "#ffe59a";
+  ctx.beginPath();
+  drawHeartPath(-12, 0, 4);
+  ctx.fill();
+
   ctx.fillStyle = "#301622";
   ctx.beginPath();
   ctx.arc(14, -18, 2, 0, Math.PI * 2);
   ctx.arc(25, -18, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(13.4, -18.8, 0.6, 0, Math.PI * 2);
+  ctx.arc(24.4, -18.8, 0.6, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#301622";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(20, -12, 5, 0.1, Math.PI - 0.1);
   ctx.stroke();
+  ctx.fillStyle = "#ff72b2";
+  for (const px of [-10, 3, 14]) {
+    ctx.beginPath();
+    ctx.ellipse(px, 17, 5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   drawSmallFlower(-9, -2, 5, "#ff89c2");
+  drawSmallFlower(4, -26, 4, "#ffd0e5");
+  drawTinySparkle(30, -8, 3, "#fff5a2");
   ctx.restore();
 }
 
@@ -1757,6 +2545,38 @@ function drawEffects() {
       ctx.quadraticCurveTo(25 + age * 80, -80, 120 + age * 80, -18);
       ctx.quadraticCurveTo(40 + age * 80, 18, -40 + age * 120, 0);
       ctx.fill();
+    } else if (effect.type === "tidal-ring" || effect.type === "bloom-ring" || effect.type === "boss-ring") {
+      const color = effect.color || (effect.type === "tidal-ring" ? "#72edff" : effect.type === "boss-ring" ? "#ff6fae" : "#ff94ca");
+      ctx.translate(effect.x, effect.y);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = effect.type === "boss-ring" ? 7 : effect.type === "tidal-ring" ? 5 : 4;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = color;
+      ctx.beginPath();
+      ctx.arc(0, 0, (effect.type === "boss-ring" ? 62 : 18) + age * 112, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha *= 0.34;
+      ctx.beginPath();
+      ctx.arc(0, 0, (effect.type === "boss-ring" ? 92 : 44) + age * 80, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = clamp(effect.life / effect.max, 0, 1);
+      if (effect.type === "boss-ring") {
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 12; i += 1) {
+          const a = (Math.PI * 2 * i) / 12 + elapsed;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 44, Math.sin(a) * 30);
+          ctx.lineTo(Math.cos(a) * (108 + age * 72), Math.sin(a) * (70 + age * 44));
+          ctx.stroke();
+        }
+      }
+      if (effect.type === "bloom-ring") {
+        for (let i = 0; i < 10; i += 1) {
+          const a = (Math.PI * 2 * i) / 10 + elapsed * 1.4;
+          drawSmallFlower(Math.cos(a) * (38 + age * 75), Math.sin(a) * (24 + age * 45), 4.5, color);
+        }
+      }
     } else if (effect.type === "heal" || effect.type === "hug") {
       const color = effect.type === "heal" ? "#ffafd5" : "#ffe098";
       ctx.translate(effect.x, effect.y);
@@ -1817,6 +2637,7 @@ function drawParticles() {
 
 function drawForeground() {
   ctx.save();
+  const map = mapById(currentMapId);
   ctx.globalAlpha = 0.5;
   ctx.fillStyle = "#031219";
   for (let i = 0; i < 12; i += 1) {
@@ -1827,6 +2648,30 @@ function drawForeground() {
     ctx.quadraticCurveTo(x + 20, world.height - h, x + 42, world.height);
     ctx.closePath();
     ctx.fill();
+  }
+  ctx.globalAlpha = 0.76;
+  for (let i = 0; i < 18; i += 1) {
+    const x = view.x + ((i * 145 - view.x * 0.55) % (view.width + 220)) - 80;
+    const y = world.height - 28 + Math.sin(elapsed * 1.2 + i) * 4;
+    const color = i % 2 ? map.bloom : map.accent;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = color;
+    if (map.id === "crystal") {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 18);
+      ctx.lineTo(x + 8, y - 34);
+      ctx.lineTo(x + 20, y + 18);
+      ctx.closePath();
+      ctx.fill();
+    } else if (i % 3 === 0) {
+      drawSmallFlower(x, y - 14, 7, color);
+    } else {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 8, 8, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -1886,28 +2731,81 @@ function updateUi() {
   const map = mapById(currentMapId);
   const sceneIndex = clamp(Math.floor(progress * map.stages.length), 0, map.stages.length - 1);
   ui.sceneName.textContent = map.stages[sceneIndex] || map.name;
+  const boss = getBoss();
+  const bossVisible = state === "playing" && boss && boss.alive && (boss.hp < boss.maxHp || Math.max(heroes.joku.x, heroes.jolie.x) > boss.x - view.width * 1.15);
+  ui.bossHud.classList.toggle("show", Boolean(bossVisible));
+  ui.bossHud.setAttribute("aria-hidden", bossVisible ? "false" : "true");
+  if (boss) {
+    ui.bossName.textContent = boss.name;
+    ui.bossHp.style.width = `${clamp(boss.hp / boss.maxHp, 0, 1) * 100}%`;
+  }
+  updateRoleBadge();
+  updateTouchButtons();
   ui.musicButton.classList.toggle("active", music.on);
 }
 
-function connectRoom(role) {
+function updateRoleBadge() {
+  ui.roleBadge.classList.toggle("joku", net.role === "host");
+  ui.roleBadge.classList.toggle("jolie", net.role === "guest");
+  if (net.role === "host") {
+    ui.roleBadge.textContent = net.players.guest
+      ? "Joku phone - ocean phoenix host"
+      : `Joku phone - hosting code ${net.code}`;
+    return;
+  }
+  if (net.role === "guest") {
+    ui.roleBadge.textContent = "Jolie phone - flower power guest";
+    return;
+  }
+  if (state === "playing") {
+    ui.roleBadge.textContent = `Solo test - ${activeHeroId === "joku" ? "Joku" : "Jolie"} leads`;
+    return;
+  }
+  ui.roleBadge.textContent = `Room code ${ui.roomCode.value || "1234567"}`;
+}
+
+function updateTouchButtons() {
+  for (const button of ui.touchButtons) {
+    const action = button.dataset.action;
+    const isSwitch = action === "switch";
+    button.disabled = isSwitch ? net.role !== "solo" || state !== "playing" : state !== "playing";
+    if (isSwitch) {
+      button.setAttribute("aria-label", net.role === "solo" ? "Switch active hero" : "Online mode locks each phone to its hero");
+    }
+  }
+}
+
+async function connectRoom(role) {
   const code = sanitizeCode(ui.roomCode.value);
   ui.roomCode.value = code;
   net.code = code;
   closeSocket();
+  const health = await checkServerHealth();
+  if (!health.ok) {
+    ui.lobbyStatus.textContent = health.message;
+    showToast("Host needs the Node server.");
+    return;
+  }
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${location.host}`;
   try {
     const ws = new WebSocket(wsUrl);
+    let opened = false;
     net.ws = ws;
     net.role = role;
     ui.lobbyStatus.textContent = role === "host" ? `Hosting room ${code}...` : `Joining room ${code}...`;
     ws.addEventListener("open", () => {
+      opened = true;
       net.connected = true;
       ws.send(JSON.stringify({ type: role, code }));
     });
     ws.addEventListener("message", (event) => handleNetMessage(JSON.parse(event.data)));
     ws.addEventListener("close", () => {
       net.connected = false;
+      if (!opened) {
+        ui.lobbyStatus.textContent = "Room server refused the connection. Start with node server.mjs, then reload.";
+        return;
+      }
       if (state !== "menu" && net.role !== "solo") showToast("Room connection closed.");
     });
     ws.addEventListener("error", () => {
@@ -1915,6 +2813,37 @@ function connectRoom(role) {
     });
   } catch {
     ui.lobbyStatus.textContent = "Could not connect. Run with npm start or node server.mjs.";
+  }
+}
+
+async function checkServerHealth() {
+  if (location.protocol === "file:" || !location.host) {
+    return { ok: false, message: "Host/join cannot work from a file. Run node server.mjs and open http://127.0.0.1:5173/." };
+  }
+  try {
+    const response = await fetch("/health", { cache: "no-store" });
+    if (!response.ok) throw new Error("Health endpoint missing");
+    const data = await response.json();
+    serverConfig.checked = true;
+    serverConfig.websocket = Boolean(data.websocket);
+    return data.websocket
+      ? { ok: true }
+      : { ok: false, message: "This server does not support game rooms. Run node server.mjs." };
+  } catch {
+    return { ok: false, message: "Host/join needs the Jolie Joku Node server. Run node server.mjs, not a static server." };
+  }
+}
+
+async function loadServerConfig() {
+  try {
+    const response = await fetch("/config.json", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    serverConfig.checked = true;
+    serverConfig.websocket = Boolean(data.websocket);
+    serverConfig.lanUrls = Array.isArray(data.lanUrls) ? data.lanUrls : [];
+  } catch {
+    serverConfig.checked = true;
   }
 }
 
@@ -1994,6 +2923,8 @@ function makeSnapshot() {
     },
     enemies: enemies.map((enemy) => ({ id: enemy.id, type: enemy.type, x: enemy.x, y: enemy.y, baseY: enemy.baseY, facing: enemy.facing, hp: enemy.hp, alive: enemy.alive, hurt: enemy.hurt, snared: enemy.snared })),
     orbs: orbs.map((orb) => ({ id: orb.id, taken: orb.taken })),
+    hazards: hazards.slice(0, 18).map((h) => ({ type: h.type, x: h.x, y: h.y, r: h.r, life: h.life, tick: h.tick, color: h.color, power: h.power })),
+    effects: effects.slice(0, 24).map((e) => ({ type: e.type, x: e.x, y: e.y, life: e.life, max: e.max, color: e.color, facing: e.facing })),
     projectiles: projectiles.slice(0, 18).map((p) => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy, r: p.r, life: p.life, type: p.type, owner: p.owner, color: p.color }))
   };
 }
@@ -2032,6 +2963,9 @@ function applySnapshot(snapshot) {
     const orb = orbs.find((item) => item.id === incoming.id);
     if (orb) orb.taken = incoming.taken;
   }
+  hazards = (snapshot.hazards || []).map((h) => ({ ...h }));
+  effects.length = 0;
+  effects.push(...(snapshot.effects || []).map((effect) => ({ ...effect })));
   projectiles = (snapshot.projectiles || []).map((p) => ({ ...p, damage: 0 }));
 }
 
@@ -2273,5 +3207,6 @@ resize();
 renderMapCards();
 buildWorld(currentMapId);
 setupEvents();
+loadServerConfig();
 showLobby();
 startLoop();

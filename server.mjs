@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { createServer } from "node:http";
+import { networkInterfaces } from "node:os";
 
 const root = resolve(".");
 const port = Number(process.env.PORT || 5173);
@@ -24,6 +24,14 @@ const mime = {
 const server = createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
+    if (pathname === "/health") {
+      sendJson(res, { ok: true, websocket: true, defaultCode: "1234567" });
+      return;
+    }
+    if (pathname === "/config.json") {
+      sendJson(res, { ok: true, websocket: true, defaultCode: "1234567", lanUrls: getLanUrls() });
+      return;
+    }
     const clean = normalize(pathname).replace(/^(\.\.[/\\])+/, "");
     let filePath = resolve(join(root, clean === "/" ? "index.html" : clean));
     if (!filePath.startsWith(root)) {
@@ -303,4 +311,27 @@ function sanitizeCode(code) {
 
 server.listen(port, () => {
   console.log(`Jolie Joku Adventure running at http://127.0.0.1:${port}/`);
+  for (const url of getLanUrls()) {
+    console.log(`Same Wi-Fi phone URL: ${url}`);
+  }
 });
+
+function sendJson(res, payload) {
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-cache"
+  });
+  res.end(JSON.stringify(payload));
+}
+
+function getLanUrls() {
+  const urls = [];
+  for (const values of Object.values(networkInterfaces())) {
+    for (const info of values || []) {
+      if (info.family === "IPv4" && !info.internal) {
+        urls.push(`http://${info.address}:${port}/`);
+      }
+    }
+  }
+  return urls;
+}

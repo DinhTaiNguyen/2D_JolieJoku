@@ -85,6 +85,22 @@
         </div>
       </section>
 
+      <div id="roleBadge" class="network-role-badge" aria-live="polite">Solo control</div>
+
+      <section id="bossHud" class="boss-hud" aria-label="Boss status" aria-hidden="true">
+        <div class="boss-title">
+          <span>Boss</span>
+          <b id="bossName">Murkheart</b>
+        </div>
+        <div class="boss-track"><i id="bossHp"></i></div>
+      </section>
+
+      <section id="chapterBanner" class="chapter-banner" aria-live="polite">
+        <span id="chapterKicker">Chapter</span>
+        <b id="chapterTitle">Heartfall Grove</b>
+        <small id="chapterSubtitle">Waterfalls, giant mushrooms, and the first promise.</small>
+      </section>
+
       <section id="menuOverlay" class="overlay menu-overlay">
         <div class="menu-panel">
           <p class="kicker">Online co-op love adventure</p>
@@ -118,6 +134,7 @@
             <div id="roomBadge" class="room-badge">Code 1234567</div>
           </header>
           <div id="playerStatus" class="player-status">Waiting for both hearts to connect.</div>
+          <div id="inviteHelp" class="invite-help">Share this page and code 1234567 with Jolie.</div>
           <div id="mapGrid" class="map-grid" aria-label="Adventure maps"></div>
           <div class="map-footer">
             <button id="backToLobbyButton" type="button" class="secondary-action">Back</button>
