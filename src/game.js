@@ -68,6 +68,7 @@ let activeHeroId = "joku";
 let toastTimer = 0;
 let chapterBannerTimer = 0;
 let bossBannerKey = "";
+let comboToastTimer = 0;
 let flash = 0;
 let entitySeed = 1;
 
@@ -289,6 +290,9 @@ function createHero(id, name, role, x, y, colors) {
     invulnerable: 0,
     shield: 0,
     castPose: 0,
+    poseKind: "idle",
+    poseTimer: 0,
+    supporterSpell: 0,
     hurtPose: 0,
     romancePose: 0,
     cooldowns: { primary: 0, secondary: 0, support: 0, bond: 0 },
@@ -510,7 +514,10 @@ function createEnemy(type, x, y) {
     hurt: 0,
     cooldown: rand(0.6, 2.4),
     alive: true,
-    snared: 0
+    snared: 0,
+    waterMark: 0,
+    flowerMark: 0,
+    comboFlash: 0
   };
 }
 
@@ -555,6 +562,7 @@ function update(dt) {
   elapsed += dt;
   tickToast(dt);
   flash = Math.max(0, flash - dt * 1.8);
+  comboToastTimer = Math.max(0, comboToastTimer - dt);
   updateCooldowns(heroes.joku, dt);
   updateCooldowns(heroes.jolie, dt);
   updateBond(dt);
@@ -576,6 +584,7 @@ function updateGuest(dt) {
   elapsed += dt;
   tickToast(dt);
   flash = Math.max(0, flash - dt * 1.8);
+  comboToastTimer = Math.max(0, comboToastTimer - dt);
   updateSupporter(heroes.joku, dt);
   updateSupporter(heroes.jolie, dt);
   updateParticles(dt);
@@ -613,6 +622,9 @@ function updateCooldowns(hero, dt) {
   hero.invulnerable = Math.max(0, hero.invulnerable - dt);
   hero.shield = Math.max(0, hero.shield - dt);
   hero.castPose = Math.max(0, hero.castPose - dt);
+  hero.poseTimer = Math.max(0, hero.poseTimer - dt);
+  if (hero.poseTimer <= 0) hero.poseKind = "idle";
+  hero.supporterSpell = Math.max(0, hero.supporterSpell - dt);
   hero.hurtPose = Math.max(0, hero.hurtPose - dt);
   hero.romancePose = Math.max(0, hero.romancePose - dt);
   hero.mana = Math.min(hero.maxMana, hero.mana + dt * 10);
@@ -764,11 +776,17 @@ function castSkill(hero, type) {
   return castJolie(hero, type);
 }
 
+function setHeroPose(hero, kind, duration) {
+  hero.poseKind = kind;
+  hero.poseTimer = duration;
+}
+
 function castJoku(hero, type) {
   if (type === "primary") {
     if (!spend(hero, 16)) return false;
     hero.cooldowns.primary = 0.36;
     hero.castPose = 0.28;
+    setHeroPose(hero, "water-crescent", 0.32);
     for (const offset of [-13, 0, 13]) {
       projectiles.push({
         x: hero.x + hero.facing * 32,
@@ -790,11 +808,26 @@ function castJoku(hero, type) {
     if (!spend(hero, 34)) return false;
     hero.cooldowns.secondary = 2.15;
     hero.castPose = 0.5;
+    setHeroPose(hero, "phoenix-surge", 0.64);
     hero.invulnerable = 0.62;
     hero.vx = hero.facing * 610;
     hero.vy = -395;
     effects.push({ type: "phoenix", x: hero.x, y: hero.y - 10, life: 0.74, max: 0.74, facing: hero.facing });
     effects.push({ type: "tidal-ring", x: hero.x + hero.facing * 82, y: hero.y, life: 0.85, max: 0.85, color: "#7df1ff" });
+    for (const offset of [-0.26, 0, 0.26]) {
+      projectiles.push({
+        x: hero.x + hero.facing * 62,
+        y: hero.y - 18 + offset * 80,
+        vx: hero.facing * (520 + Math.abs(offset) * 80),
+        vy: offset * 180 - 18,
+        r: 14,
+        life: 0.86,
+        damage: 20,
+        owner: hero.id,
+        type: "phoenix-feather",
+        color: "#8ff3ff"
+      });
+    }
     areaDamage(hero.x + hero.facing * 95, hero.y, 138, 58, "phoenix");
     burst(hero.x, hero.y, "#60e7ff", 48, 270);
     return true;
@@ -803,9 +836,14 @@ function castJoku(hero, type) {
     if (!spend(hero, 26)) return false;
     hero.cooldowns.support = 3.8;
     hero.shield = 4.4;
+    hero.supporterSpell = 1.15;
+    setHeroPose(hero, "azure-command", 0.44);
     const target = nearestEnemy(hero, 560);
     const angle = target ? Math.atan2(target.y - hero.y, target.x - hero.x) : hero.facing > 0 ? 0 : Math.PI;
-    projectiles.push({ x: hero.supporter.x, y: hero.supporter.y - 18, vx: Math.cos(angle) * 600, vy: Math.sin(angle) * 600, r: 22, life: 1.35, damage: 38, owner: hero.id, type: "paw-blue" });
+    for (const spread of [-0.18, 0, 0.18]) {
+      const shotAngle = angle + spread;
+      projectiles.push({ x: hero.supporter.x, y: hero.supporter.y - 18, vx: Math.cos(shotAngle) * 600, vy: Math.sin(shotAngle) * 600, r: spread ? 17 : 23, life: 1.35, damage: spread ? 22 : 40, owner: hero.id, type: "paw-blue" });
+    }
     effects.push({ type: "tidal-ring", x: hero.supporter.x, y: hero.supporter.y - 10, life: 0.75, max: 0.75, color: "#8fe9ff" });
     areaDamage(hero.supporter.x, hero.supporter.y - 10, 86, 18, "water");
     showToast("Blue dog casts Azure Bark Guard.");
@@ -820,6 +858,7 @@ function castJolie(hero, type) {
     if (!spend(hero, 15)) return false;
     hero.cooldowns.primary = 0.44;
     hero.castPose = 0.34;
+    setHeroPose(hero, "petal-burst", 0.38);
     for (let i = -2; i <= 2; i += 1) {
       projectiles.push({
         x: hero.x + hero.facing * 30,
@@ -841,6 +880,7 @@ function castJolie(hero, type) {
     if (!spend(hero, 32)) return false;
     hero.cooldowns.secondary = 2.9;
     hero.castPose = 0.5;
+    setHeroPose(hero, "vine-promise", 0.68);
     hazards.push({ type: "vine", x: hero.x + hero.facing * 112, y: hero.y + 35, r: 128, life: 4.2, tick: 0, power: 14 });
     effects.push({ type: "bloom-ring", x: hero.x + hero.facing * 106, y: hero.y + 16, life: 1.0, max: 1.0, color: "#ff9fce" });
     showToast("Jolie plants Vine Promise.");
@@ -850,12 +890,29 @@ function castJolie(hero, type) {
   if (type === "support") {
     if (!spend(hero, 34)) return false;
     hero.cooldowns.support = 4.6;
+    hero.supporterSpell = 1.35;
+    setHeroPose(hero, "panda-blessing", 0.5);
     heroes.joku.hp = Math.min(heroes.joku.maxHp, heroes.joku.hp + 32);
     heroes.jolie.hp = Math.min(heroes.jolie.maxHp, heroes.jolie.hp + 36);
     heroes.joku.shield = Math.max(heroes.joku.shield, 2.6);
     heroes.jolie.shield = Math.max(heroes.jolie.shield, 2.6);
     effects.push({ type: "heal", x: hero.supporter.x, y: hero.supporter.y, life: 1.35, max: 1.35 });
     effects.push({ type: "bloom-ring", x: hero.supporter.x, y: hero.supporter.y, life: 0.95, max: 0.95, color: "#ffadd4" });
+    for (let i = -2; i <= 2; i += 1) {
+      const angle = -Math.PI / 2 + i * 0.22;
+      projectiles.push({
+        x: hero.supporter.x,
+        y: hero.supporter.y - 18,
+        vx: Math.cos(angle) * 270 + hero.facing * 80,
+        vy: Math.sin(angle) * 260,
+        r: 14,
+        life: 1.4,
+        damage: 18,
+        owner: hero.id,
+        type: "heart-petal",
+        color: "#ffadd4"
+      });
+    }
     areaDamage(hero.supporter.x, hero.supporter.y, 138, 28, "flower");
     showToast("Pink panda blooms Honeyheart healing.");
     return true;
@@ -933,7 +990,25 @@ function areaDamage(x, y, radius, damage, source) {
 }
 
 function damageEnemy(enemy, amount, source) {
+  const isWater = source === "water" || source === "phoenix";
+  const isFlower = source === "flower" || source === "vine";
+  let comboBonus = 0;
+  if (isWater && enemy.flowerMark > 0) comboBonus = enemy.family === "boss" ? 38 : 22;
+  if (isFlower && enemy.waterMark > 0) comboBonus = enemy.family === "boss" ? 38 : 22;
   enemy.hp -= amount;
+  if (comboBonus > 0) {
+    enemy.hp -= comboBonus;
+    enemy.comboFlash = 0.55;
+    bond.value = Math.min(100, bond.value + (enemy.family === "boss" ? 9 : 5));
+    effects.push({ type: "twin-burst", x: enemy.x, y: enemy.y, life: 0.72, max: 0.72, color: enemy.glow });
+    burst(enemy.x, enemy.y, "#ffe59a", enemy.family === "boss" ? 26 : 15, 210);
+    if (comboToastTimer <= 0) {
+      showToast("Twin Bloom Surge!");
+      comboToastTimer = 1.35;
+    }
+  }
+  if (isWater) enemy.waterMark = 1.45;
+  if (isFlower) enemy.flowerMark = 1.45;
   enemy.hurt = 0.18;
   const color = source === "flower" ? "#ff8ec4" : source === "heart" ? "#ffe092" : "#68e7ff";
   burst(enemy.x, enemy.y, color, enemy.family === "boss" ? 30 : 15, 180);
@@ -960,6 +1035,9 @@ function updateEnemies(dt) {
     enemy.cooldown -= dt;
     enemy.hurt = Math.max(0, enemy.hurt - dt);
     enemy.snared = Math.max(0, enemy.snared - dt);
+    enemy.waterMark = Math.max(0, enemy.waterMark - dt);
+    enemy.flowerMark = Math.max(0, enemy.flowerMark - dt);
+    enemy.comboFlash = Math.max(0, enemy.comboFlash - dt);
     const target = distance(enemy, heroes.joku) < distance(enemy, heroes.jolie) ? heroes.joku : heroes.jolie;
     enemy.facing = target.x >= enemy.x ? 1 : -1;
     const moveScale = enemy.snared > 0 ? 0.15 : 1;
@@ -1044,9 +1122,9 @@ function updateProjectiles(dt) {
     p.life -= dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
-    if (p.type === "flower") p.vy += Math.sin(elapsed * 8 + p.x) * dt * 60;
-    if (p.type === "water" || p.type === "paw-blue") addTrail(p);
-    if (p.type === "flower") addParticle(p.x, p.y, "#ff96c9", 0.55, { size: rand(2, 4), shape: "petal" });
+    if (p.type === "flower" || p.type === "heart-petal") p.vy += Math.sin(elapsed * 8 + p.x) * dt * 60;
+    if (p.type === "water" || p.type === "paw-blue" || p.type === "phoenix-feather") addTrail(p);
+    if (p.type === "flower" || p.type === "heart-petal") addParticle(p.x, p.y, p.type === "heart-petal" ? "#ffadd4" : "#ff96c9", 0.55, { size: rand(2, 4), shape: "petal" });
 
     if (p.owner === "enemy") {
       for (const hero of [heroes.joku, heroes.jolie]) {
@@ -1059,8 +1137,8 @@ function updateProjectiles(dt) {
       for (const enemy of enemies) {
         if (!enemy.alive) continue;
         if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < enemy.r + p.r) {
-          damageEnemy(enemy, p.damage, p.type.includes("flower") ? "flower" : "water");
-          p.life = p.type === "flower" ? Math.min(p.life, 0.08) : 0;
+          damageEnemy(enemy, p.damage, p.type.includes("flower") || p.type.includes("petal") ? "flower" : "water");
+          p.life = p.type === "flower" || p.type === "heart-petal" ? Math.min(p.life, 0.08) : 0;
           break;
         }
       }
@@ -1340,6 +1418,7 @@ function drawMapSignatureBackdrop(map) {
 
 function drawWorldDetails() {
   drawMoonGate();
+  drawLoveBridge();
   for (const platform of platforms) drawPlatform(platform);
   drawScenicMagic();
   const map = mapById(currentMapId);
@@ -1353,6 +1432,54 @@ function drawWorldDetails() {
     ctx.ellipse(x, y, 130, 11, 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.restore();
+}
+
+function drawLoveBridge() {
+  const map = mapById(currentMapId);
+  const gateX = world.width - 250;
+  const progressGlow = clamp(getProgress() * 1.4 - 0.38, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = 0.42 + progressGlow * 0.42;
+  ctx.shadowBlur = 20 + progressGlow * 20;
+  ctx.shadowColor = map.bloom;
+  ctx.strokeStyle = map.bloom;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(gateX - 390, 610);
+  ctx.bezierCurveTo(gateX - 260, 540 - progressGlow * 24, gateX - 90, 540 - progressGlow * 24, gateX + 50, 610);
+  ctx.stroke();
+  ctx.strokeStyle = map.accent;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i += 1) {
+    const x = gateX - 340 + i * 55;
+    ctx.beginPath();
+    ctx.moveTo(x, 618);
+    ctx.lineTo(x + 28, 577 - Math.sin(i) * 9);
+    ctx.stroke();
+  }
+  for (const side of [-1, 1]) {
+    const x = gateX - 170 + side * 145;
+    ctx.fillStyle = side < 0 ? "#7deeff" : "#ffadd4";
+    ctx.beginPath();
+    ctx.ellipse(x, 590, 22, 54, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff7fb";
+    ctx.beginPath();
+    ctx.arc(x, 530, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffe59a";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + side * 4, 528, 28, side < 0 ? -0.9 : Math.PI + 0.9, side < 0 ? 0.8 : Math.PI - 0.8);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#ffe59a";
+  ctx.beginPath();
+  drawHeartPath(gateX - 170, 540 - progressGlow * 24, 15 + progressGlow * 8);
+  ctx.fill();
+  drawTinySparkle(gateX - 190, 506 - progressGlow * 20, 5, "#fff5a2");
+  drawTinySparkle(gateX - 142, 516 - progressGlow * 16, 4, "#d8f8ff");
   ctx.restore();
 }
 
@@ -1597,6 +1724,44 @@ function drawProjectiles() {
       ctx.beginPath();
       ctx.arc(0, 0, p.r * 0.72, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (p.type === "phoenix-feather") {
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.atan2(p.vy, p.vx));
+      ctx.shadowBlur = 26;
+      ctx.shadowColor = "#8ff3ff";
+      const featherGrad = ctx.createLinearGradient(-p.r * 1.8, 0, p.r * 2.4, 0);
+      featherGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+      featherGrad.addColorStop(0.45, "#8ff3ff");
+      featherGrad.addColorStop(1, "#1a8ef2");
+      ctx.fillStyle = featherGrad;
+      ctx.beginPath();
+      ctx.moveTo(-p.r * 1.7, 0);
+      ctx.quadraticCurveTo(0, -p.r * 1.35, p.r * 2.4, -p.r * 0.22);
+      ctx.quadraticCurveTo(p.r * 0.25, p.r * 1.1, -p.r * 1.7, 0);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-p.r, 0);
+      ctx.lineTo(p.r * 1.7, -p.r * 0.12);
+      ctx.stroke();
+    } else if (p.type === "heart-petal") {
+      ctx.translate(p.x, p.y);
+      ctx.rotate(elapsed * 5 + p.x * 0.01);
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = "#ffadd4";
+      const heartGrad = ctx.createLinearGradient(-p.r, -p.r, p.r, p.r);
+      heartGrad.addColorStop(0, "#fff7fb");
+      heartGrad.addColorStop(0.46, "#ffadd4");
+      heartGrad.addColorStop(1, "#ff72b2");
+      ctx.fillStyle = heartGrad;
+      ctx.beginPath();
+      drawHeartPath(0, -1, p.r * 0.9);
+      ctx.fill();
+      ctx.strokeStyle = "#fff5a2";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      drawSmallFlower(p.r * 0.2, -p.r * 0.35, p.r * 0.26, "#fff5a2");
     } else if (p.type === "paw-blue") {
       drawPaw(p.x, p.y, p.r, "#8fe9ff");
     } else {
@@ -1681,6 +1846,7 @@ function drawEnemies() {
     ctx.globalAlpha = enemy.hurt > 0 ? 0.72 : 1;
     ctx.shadowBlur = enemy.family === "boss" ? 28 : 16;
     ctx.shadowColor = enemy.glow;
+    drawEnemyMarks(enemy);
     if (enemy.family === "flying") drawFlyingEnemy(enemy);
     else if (enemy.family === "serpent") drawSerpentEnemy(enemy);
     else if (enemy.family === "boss") drawBossEnemy(enemy);
@@ -1688,6 +1854,42 @@ function drawEnemies() {
     drawEnemyHealth(enemy);
     ctx.restore();
   }
+}
+
+function drawEnemyMarks(enemy) {
+  if (enemy.waterMark <= 0 && enemy.flowerMark <= 0 && enemy.comboFlash <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = 0.25 + Math.max(enemy.waterMark, enemy.flowerMark, enemy.comboFlash) * 0.22;
+  ctx.lineWidth = enemy.family === "boss" ? 5 : 3;
+  if (enemy.waterMark > 0) {
+    ctx.strokeStyle = "#76edff";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#76edff";
+    ctx.beginPath();
+    ctx.arc(0, -2, enemy.r * (1.25 + Math.sin(elapsed * 4) * 0.05), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (enemy.flowerMark > 0) {
+    ctx.strokeStyle = "#ff9fce";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#ff9fce";
+    ctx.beginPath();
+    ctx.arc(0, -2, enemy.r * (1.42 + Math.cos(elapsed * 4) * 0.05), Math.PI * 0.15, Math.PI * 1.85);
+    ctx.stroke();
+    for (let i = 0; i < 5; i += 1) {
+      const a = (Math.PI * 2 * i) / 5 + elapsed;
+      drawSmallFlower(Math.cos(a) * enemy.r * 1.08, Math.sin(a) * enemy.r * 0.7, enemy.family === "boss" ? 5 : 3.5, "#ff9fce");
+    }
+  }
+  if (enemy.comboFlash > 0) {
+    ctx.globalAlpha = Math.min(0.9, enemy.comboFlash * 1.4);
+    ctx.strokeStyle = "#ffe59a";
+    ctx.lineWidth = enemy.family === "boss" ? 7 : 4;
+    ctx.beginPath();
+    ctx.ellipse(0, -3, enemy.r * 1.8, enemy.r * 1.1, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawFlyingEnemy(enemy) {
@@ -1979,6 +2181,7 @@ function drawHero(hero) {
   if (hero.invulnerable > 0 && Math.floor(elapsed * 18) % 2 === 0) ctx.globalAlpha = 0.62;
   if (hero.id === "joku") drawJoku(hero, walk);
   else drawJolie(hero, walk);
+  drawHeroPoseFlourish(hero);
   if (hero.shield > 0) {
     ctx.globalAlpha = 0.36 + Math.sin(elapsed * 12) * 0.08;
     ctx.strokeStyle = hero.id === "joku" ? "#7de8ff" : "#ffaad4";
@@ -1988,6 +2191,70 @@ function drawHero(hero) {
     ctx.beginPath();
     ctx.ellipse(0, -10, 42, 58, 0, 0, Math.PI * 2);
     ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHeroPoseFlourish(hero) {
+  if (hero.poseTimer <= 0) return;
+  const a = clamp(hero.poseTimer * 2.2, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.shadowBlur = 26;
+  if (hero.poseKind === "water-crescent") {
+    ctx.strokeStyle = "#d8f8ff";
+    ctx.shadowColor = "#76edff";
+    ctx.lineWidth = 5;
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.arc(34 + i * 9, -8 + i * 3, 18 + i * 9, -0.9, 1.35);
+      ctx.stroke();
+    }
+  } else if (hero.poseKind === "phoenix-surge") {
+    ctx.fillStyle = "#8ff3ff";
+    ctx.shadowColor = "#8ff3ff";
+    for (let i = 0; i < 6; i += 1) {
+      ctx.save();
+      ctx.rotate(-0.8 + i * 0.24);
+      ctx.beginPath();
+      ctx.ellipse(42 + i * 5, -18, 10, 34 + i * 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (hero.poseKind === "azure-command") {
+    ctx.strokeStyle = "#8fe9ff";
+    ctx.shadowColor = "#8fe9ff";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, -18, 42, 0, Math.PI * 2);
+    ctx.stroke();
+    drawPaw(30, -42, 10, "#d8f8ff");
+  } else if (hero.poseKind === "petal-burst") {
+    ctx.shadowColor = "#ff9fce";
+    for (let i = 0; i < 8; i += 1) {
+      const angle = i * Math.PI * 0.25 + elapsed * 1.8;
+      drawSmallFlower(Math.cos(angle) * 38, -14 + Math.sin(angle) * 30, 5.5, i % 2 ? "#ffd0e5" : "#ff8fc4");
+    }
+  } else if (hero.poseKind === "vine-promise") {
+    ctx.strokeStyle = "#78e09c";
+    ctx.shadowColor = "#78e09c";
+    ctx.lineWidth = 3.5;
+    for (let i = 0; i < 4; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(-22 + i * 14, 28);
+      ctx.quadraticCurveTo(-10 + i * 18, -18 - i * 5, 32 + i * 14, -30);
+      ctx.stroke();
+      drawSmallFlower(31 + i * 9, -31 - i * 2, 4.5, "#ff9fce");
+    }
+  } else if (hero.poseKind === "panda-blessing") {
+    ctx.shadowColor = "#ffadd4";
+    for (let i = 0; i < 5; i += 1) {
+      const angle = -Math.PI / 2 + (i - 2) * 0.34;
+      ctx.fillStyle = i % 2 ? "#ffadd4" : "#ffe59a";
+      ctx.beginPath();
+      drawHeartPath(Math.cos(angle) * 42, -20 + Math.sin(angle) * 26, 9);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -2374,8 +2641,48 @@ function drawTinySparkle(x, y, r, color) {
 }
 
 function drawSupporter(hero) {
+  drawSupporterSpellAura(hero);
   if (hero.id === "joku") drawBlueDog(hero.supporter.x, hero.supporter.y, hero.facing, hero.colors.support);
   else drawPinkPanda(hero.supporter.x, hero.supporter.y, hero.facing, hero.colors.support);
+}
+
+function drawSupporterSpellAura(hero) {
+  if (hero.supporterSpell <= 0) return;
+  const x = hero.supporter.x;
+  const y = hero.supporter.y;
+  const t = hero.supporterSpell;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = clamp(t, 0, 1);
+  ctx.shadowBlur = 26;
+  if (hero.id === "joku") {
+    ctx.strokeStyle = "#8fe9ff";
+    ctx.fillStyle = "rgba(143, 233, 255, 0.18)";
+    ctx.shadowColor = "#8fe9ff";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, -10, 42 + Math.sin(elapsed * 8) * 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    for (let i = 0; i < 5; i += 1) {
+      const a = elapsed * 3 + i * Math.PI * 0.4;
+      drawPaw(Math.cos(a) * 38, -10 + Math.sin(a) * 24, 5.4, "#d8f8ff");
+    }
+  } else {
+    ctx.strokeStyle = "#ffadd4";
+    ctx.fillStyle = "rgba(255, 173, 212, 0.18)";
+    ctx.shadowColor = "#ffadd4";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    drawHeartPath(0, -8, 42 + Math.sin(elapsed * 7) * 3);
+    ctx.fill();
+    ctx.stroke();
+    for (let i = 0; i < 7; i += 1) {
+      const a = elapsed * 2.4 + i * Math.PI * 0.285;
+      drawSmallFlower(Math.cos(a) * 42, -10 + Math.sin(a) * 26, 4.6, i % 2 ? "#ffd0e5" : "#ff8fc4");
+    }
+  }
+  ctx.restore();
 }
 
 function drawBlueDog(x, y, facing, color) {
@@ -2607,6 +2914,22 @@ function drawEffects() {
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       ctx.stroke();
+    } else if (effect.type === "twin-burst") {
+      ctx.translate(effect.x, effect.y);
+      ctx.shadowBlur = 34;
+      ctx.shadowColor = "#ffe59a";
+      ctx.lineWidth = 4;
+      for (let i = 0; i < 2; i += 1) {
+        ctx.strokeStyle = i === 0 ? "#78eaff" : "#ff9fce";
+        ctx.beginPath();
+        ctx.arc(0, 0, 18 + age * (90 + i * 28), i * Math.PI + elapsed, i * Math.PI + elapsed + Math.PI * 1.45);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#ffe59a";
+      ctx.globalAlpha *= 0.58;
+      ctx.beginPath();
+      drawHeartPath(0, -4, 18 + age * 18);
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -2921,7 +3244,21 @@ function makeSnapshot() {
       joku: pickHero(heroes.joku),
       jolie: pickHero(heroes.jolie)
     },
-    enemies: enemies.map((enemy) => ({ id: enemy.id, type: enemy.type, x: enemy.x, y: enemy.y, baseY: enemy.baseY, facing: enemy.facing, hp: enemy.hp, alive: enemy.alive, hurt: enemy.hurt, snared: enemy.snared })),
+    enemies: enemies.map((enemy) => ({
+      id: enemy.id,
+      type: enemy.type,
+      x: enemy.x,
+      y: enemy.y,
+      baseY: enemy.baseY,
+      facing: enemy.facing,
+      hp: enemy.hp,
+      alive: enemy.alive,
+      hurt: enemy.hurt,
+      snared: enemy.snared,
+      waterMark: enemy.waterMark,
+      flowerMark: enemy.flowerMark,
+      comboFlash: enemy.comboFlash
+    })),
     orbs: orbs.map((orb) => ({ id: orb.id, taken: orb.taken })),
     hazards: hazards.slice(0, 18).map((h) => ({ type: h.type, x: h.x, y: h.y, r: h.r, life: h.life, tick: h.tick, color: h.color, power: h.power })),
     effects: effects.slice(0, 24).map((e) => ({ type: e.type, x: e.x, y: e.y, life: e.life, max: e.max, color: e.color, facing: e.facing })),
@@ -2941,6 +3278,9 @@ function pickHero(hero) {
     shield: hero.shield,
     invulnerable: hero.invulnerable,
     castPose: hero.castPose,
+    poseKind: hero.poseKind,
+    poseTimer: hero.poseTimer,
+    supporterSpell: hero.supporterSpell,
     hurtPose: hero.hurtPose,
     romancePose: hero.romancePose
   };
